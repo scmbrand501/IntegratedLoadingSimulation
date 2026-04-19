@@ -1,0 +1,4115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>통합 물류 적재 시뮬레이터</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background: #f5f7fa; color: #1f2937; line-height: 1.5;
+    padding: 16px; min-height: 100vh;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  header {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+    color: white; padding: 20px 28px; border-radius: 14px;
+    margin-bottom: 14px; box-shadow: 0 4px 16px rgba(3,105,161,0.15);
+  }
+  header h1 { font-size: 22px; margin-bottom: 4px; font-weight: 700; }
+  header p { opacity: 0.9; font-size: 13px; }
+
+  .tabs {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    background: white; padding: 6px; border-radius: 12px;
+    margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .tab {
+    padding: 12px 8px; text-align: center; border-radius: 8px;
+    cursor: pointer; font-size: 13px; font-weight: 600; color: #6b7280;
+    transition: all 0.15s; border: none; background: transparent;
+  }
+  .tab:hover { background: #f1f5f9; }
+  .tab.active {
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    color: white; box-shadow: 0 2px 6px rgba(14,165,233,0.3);
+  }
+  .tab-icon { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  .grid-main {
+    display: grid; grid-template-columns: 340px 1fr; gap: 14px;
+  }
+  @media (max-width: 960px) { .grid-main { grid-template-columns: 1fr; } }
+
+  .card {
+    background: white; border-radius: 14px; padding: 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    font-size: 14px; margin-bottom: 12px; color: #0369a1;
+    padding-bottom: 10px; border-bottom: 1px solid #e5e7eb; font-weight: 700;
+  }
+
+  .input-group { margin-bottom: 12px; }
+  .input-group label {
+    display: block; font-size: 11px; font-weight: 600; margin-bottom: 5px;
+    color: #4b5563; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .input-row { display: grid; gap: 6px; }
+  .input-row.two { grid-template-columns: 1fr 1fr; }
+  .input-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  input[type="number"], select {
+    width: 100%; padding: 8px 10px; border: 1px solid #d1d5db;
+    border-radius: 7px; font-size: 13px; background: white;
+  }
+  input[type="number"]:focus, select:focus {
+    outline: none; border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+  }
+  .checkbox-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; font-size: 13px; color: #4b5563;
+  }
+  button.primary {
+    width: 100%; padding: 11px;
+    background: #0ea5e9; color: white; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; margin-top: 4px;
+  }
+  button.primary:hover { background: #0284c7; transform: translateY(-1px); }
+  .preset-row {
+    display: grid; gap: 6px; margin-bottom: 10px;
+  }
+  .preset-row.three { grid-template-columns: repeat(3, 1fr); }
+  .preset {
+    padding: 6px; background: #f1f5f9; border: 1px solid #e2e8f0;
+    border-radius: 6px; font-size: 10.5px; cursor: pointer;
+    text-align: center; transition: all 0.15s; line-height: 1.3;
+  }
+  .preset:hover { background: #e0f2fe; border-color: #0ea5e9; }
+  .preset.active { background: #0ea5e9; color: white; border-color: #0ea5e9; }
+
+  .summary-bar {
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    color: white; padding: 14px 18px; border-radius: 10px; margin-bottom: 12px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .summary-item { text-align: center; }
+  .summary-value { font-size: 22px; font-weight: 800; line-height: 1.1; }
+  .summary-label { font-size: 11px; opacity: 0.85; margin-top: 3px; }
+
+  #three-container {
+    width: 100%; height: 480px;
+    background: linear-gradient(to bottom, #e0f2fe 0%, #f8fafc 100%);
+    border-radius: 10px; position: relative; overflow: hidden; cursor: grab;
+  }
+  #three-container:active { cursor: grabbing; }
+  #three-container canvas { display: block; }
+  .loading {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: #6b7280; font-size: 13px;
+  }
+
+  .viewer-controls {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 10px;
+    align-items: center; padding: 10px; margin-top: 10px;
+    background: #f9fafb; border-radius: 10px;
+  }
+  @media (max-width: 600px) { .viewer-controls { grid-template-columns: 1fr 1fr; } }
+  .btn-small {
+    padding: 8px 12px; background: white; border: 1px solid #d1d5db;
+    border-radius: 7px; font-size: 12px; cursor: pointer; font-weight: 600;
+    color: #374151; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-small:hover { border-color: #0ea5e9; color: #0369a1; }
+  .btn-small.active { background: #0ea5e9; color: white; border-color: #0ea5e9; }
+  .slider-label {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #6b7280; font-weight: 600; gap: 8px;
+  }
+  .slider-label strong { color: #0369a1; }
+  input[type="range"] { flex: 1; accent-color: #0ea5e9; }
+  .slider-group { display: flex; align-items: center; gap: 8px; width: 100%; }
+
+  .legend {
+    display: flex; gap: 14px; font-size: 11px; color: #4b5563;
+    margin-top: 10px; padding: 8px 12px; background: #f9fafb;
+    border-radius: 8px; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-box { width: 14px; height: 10px; border-radius: 2px; }
+
+  .alert {
+    padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 8px;
+  }
+  .alert.error { background: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; }
+  .alert.info { background: #dbeafe; border-left: 4px solid #0ea5e9; color: #1e40af; }
+
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px; margin-top: 12px;
+  }
+  .stat {
+    padding: 12px; background: #f9fafb; border-radius: 8px; text-align: center;
+  }
+  .stat-value { font-size: 20px; font-weight: 800; color: #0369a1; line-height: 1.1; }
+  .stat-label { font-size: 11px; color: #6b7280; margin-top: 3px; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* === 실시간 게이지 패널 === */
+  .gauge-panel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    padding: 14px 16px;
+    margin-top: 10px;
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+  }
+  @media (max-width: 700px) {
+    .gauge-panel { grid-template-columns: 1fr; gap: 10px; }
+  }
+  .gauge-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .gauge-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    gap: 8px;
+  }
+  .gauge-label .gauge-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .gauge-label strong {
+    color: #0369a1;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+  .gauge-label .gauge-sub {
+    color: #94a3b8;
+    font-weight: 500;
+    font-size: 10px;
+  }
+  .gauge-track {
+    width: 100%;
+    height: 12px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0ea5e9, #0369a1);
+    border-radius: 6px;
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .gauge-fill.success { background: linear-gradient(90deg, #10b981, #059669); }
+  .gauge-fill.warning { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .gauge-fill.danger  { background: linear-gradient(90deg, #ef4444, #b91c1c); }
+  .gauge-fill::after {
+    content: '';
+    position: absolute; top: 0; left: -30%;
+    width: 30%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    animation: gauge-shine 2.2s ease-in-out infinite;
+  }
+  @keyframes gauge-shine {
+    0% { left: -30%; }
+    60%, 100% { left: 110%; }
+  }
+  .gauge-fill.empty::after { display: none; }
+
+  /* === 모드 스위치 (Tab 1) === */
+  .mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 14px;
+  }
+  .mode-btn {
+    padding: 10px 8px;
+    border: none;
+    background: transparent;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    color: #64748b;
+    transition: all 0.18s;
+    font-family: inherit;
+    line-height: 1.3;
+  }
+  .mode-btn:hover { color: #0369a1; }
+  .mode-btn.active {
+    background: white;
+    color: #0369a1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+  /* === 추천 카드 리스트 === */
+  .rec-intro {
+    font-size: 13px;
+    color: #0369a1;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #f0f9ff;
+    border-left: 3px solid #0ea5e9;
+    border-radius: 6px;
+  }
+  .rec-intro.warning {
+    color: #92400e;
+    background: #fef3c7;
+    border-left-color: #f59e0b;
+    line-height: 1.6;
+  }
+  .rec-intro.warning strong { color: #78350f; }
+  .recommendations-list {
+    display: grid;
+    gap: 10px;
+  }
+  .rec-card {
+    padding: 14px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    position: relative;
+  }
+  .rec-card:hover {
+    border-color: #0ea5e9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(14,165,233,0.08);
+  }
+  .rec-card.selected {
+    border-color: #10b981;
+    background: linear-gradient(to bottom, #f0fdf4, white);
+  }
+  .rec-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  .rec-card-rank {
+    background: #0ea5e9;
+    color: white;
+    min-width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px;
+    flex-shrink: 0;
+  }
+  .rec-card-rank.best { background: linear-gradient(135deg, #10b981, #059669); }
+  .rec-card-title {
+    flex: 1;
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .rec-card-badge {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  /* 단수 배지 (낮은 단수일수록 초록색, 높을수록 주황) */
+  .layers-badge {
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .layers-badge.layers-1 {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+  .layers-badge.layers-2 {
+    background: linear-gradient(135deg, #38bdf8, #0284c7);
+    color: white;
+  }
+  .layers-badge.layers-3 {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+  }
+  .layers-badge.layers-many {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    color: white;
+  }
+  .rec-dims {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1f2937;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.3px;
+  }
+  .rec-dims-unit {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .rec-arrangement {
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 3px;
+  }
+  .rec-arrangement strong { color: #0369a1; font-weight: 700; }
+  .rec-meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .rec-meta-item {
+    text-align: center;
+    padding: 7px 4px;
+    background: #f8fafc;
+    border-radius: 6px;
+  }
+  .rec-meta-label {
+    font-size: 9.5px;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+  }
+  .rec-meta-value {
+    font-weight: 700;
+    color: #0369a1;
+    font-size: 13px;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .rec-aspect-indicator {
+    margin-top: 8px;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .rec-aspect-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    border-radius: 2px;
+  }
+
+  /* === 남은 여유 공간 표시 === */
+  .space-info {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border: 1px solid #a7f3d0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+  }
+  .space-info.has-exceed {
+    background: linear-gradient(135deg, #fef2f2, #fff7ed);
+    border-color: #fca5a5;
+  }
+  .space-info-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #065f46;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .space-info.has-exceed .space-info-title { color: #991b1b; }
+  .space-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .space-item {
+    padding: 10px 8px;
+    background: white;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+  }
+  .space-item-label {
+    font-size: 10px;
+    color: #6b7280;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .space-item-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #059669;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .space-item-value.tight { color: #d97706; }
+  .space-item-value.exceed { color: #dc2626; }
+  .space-item-sub {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 3px;
+    font-weight: 500;
+  }
+  .space-item-sub.warning { color: #d97706; font-weight: 600; }
+  .space-item-sub.exceed { color: #dc2626; font-weight: 600; }
+
+  /* 남은 공간 - 맥락 정보 (박스 / 내용물 치수) */
+  .space-info-context {
+    font-size: 11px;
+    color: #064e3b;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+  .space-info-context strong { color: #059669; }
+  .space-info.has-exceed .space-info-context { color: #7f1d1d; }
+  .space-info.has-exceed .space-info-context strong { color: #dc2626; }
+
+  /* 업데이트 플래시 애니메이션 */
+  @keyframes space-flash {
+    0% { border-color: #a7f3d0; box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    30% { border-color: #10b981; box-shadow: 0 0 0 6px rgba(16,185,129,0.25); }
+    100% { border-color: #a7f3d0; box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  }
+  .space-info.flash { animation: space-flash 0.55s ease-out; }
+
+  /* 균형 점수 미니 인디케이터 (카드에 표시) */
+  .rec-score-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: #64748b;
+  }
+  .rec-score-bar-label { font-weight: 700; color: #475569; white-space: nowrap; }
+  .rec-score-bar-track {
+    flex: 1;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .rec-score-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  .rec-score-value {
+    font-weight: 800;
+    color: #059669;
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  /* 통합 시뮬레이션 */
+  .flow-diagram {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    margin-top: 12px;
+  }
+  @media (max-width: 820px) { .flow-diagram { grid-template-columns: 1fr 1fr; } }
+  .flow-step {
+    padding: 14px 12px; background: #f9fafb; border-radius: 10px;
+    border: 1.5px solid #e5e7eb; position: relative;
+    transition: all 0.2s;
+  }
+  .flow-step.has-data { border-color: #0ea5e9; background: #f0f9ff; }
+  .flow-step-icon { font-size: 22px; margin-bottom: 6px; }
+  .flow-step-label { font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; }
+  .flow-step-value {
+    font-size: 24px; font-weight: 800; color: #0369a1; line-height: 1.1; margin-top: 4px;
+  }
+  .flow-step-unit { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .flow-arrow {
+    position: absolute; right: -13px; top: 50%; transform: translateY(-50%);
+    font-size: 16px; color: #0ea5e9; z-index: 2;
+  }
+  @media (max-width: 820px) {
+    .flow-arrow { display: none; }
+  }
+  .flow-step:last-child .flow-arrow { display: none; }
+
+  .final-result {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: white; padding: 20px; border-radius: 12px; text-align: center;
+    margin-top: 14px;
+  }
+  .final-result-label { font-size: 13px; opacity: 0.9; margin-bottom: 6px; }
+  .final-result-value {
+    font-size: 38px; font-weight: 800; line-height: 1.1;
+  }
+  .final-result-sub { font-size: 12px; opacity: 0.85; margin-top: 6px; }
+
+  .integrated-layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  @media (max-width: 900px) { .integrated-layout { grid-template-columns: 1fr; } }
+
+  .input-section {
+    padding: 14px; background: #f9fafb; border-radius: 10px; margin-bottom: 10px;
+  }
+  .input-section h3 {
+    font-size: 13px; font-weight: 700; color: #0369a1; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* === 적재 패턴 선택 카드 === */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  @media (max-width: 500px) {
+    .pattern-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .pattern-card {
+    padding: 10px 6px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .pattern-card:hover {
+    border-color: #0ea5e9;
+    background: #f0f9ff;
+    transform: translateY(-1px);
+  }
+  .pattern-card.active {
+    border-color: #0ea5e9;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    color: white;
+    box-shadow: 0 3px 8px rgba(14,165,233,0.3);
+  }
+  .pattern-card.active .pattern-desc { color: rgba(255,255,255,0.85); }
+  .pattern-icon-svg {
+    width: 40px; height: 40px;
+    margin: 0 auto 4px;
+    display: block;
+  }
+  .pattern-name {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+  }
+  .pattern-desc {
+    font-size: 9.5px;
+    color: #94a3b8;
+    margin-top: 2px;
+    line-height: 1.2;
+  }
+  .pattern-card.active .pattern-icon-svg * {
+    stroke: white !important;
+  }
+  .pattern-card.active .pattern-icon-svg rect[fill] {
+    fill: rgba(255,255,255,0.25) !important;
+  }
+
+  /* 패턴 뱃지 (결과 표시) */
+  .pattern-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    color: white;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 8px;
+    letter-spacing: 0.2px;
+  }
+
+  /* === 엑셀 업로드 모드 (Tab 1) === */
+  /* Tab 1 모드 스위치만 3칸 */
+  #tab1 .mode-switch {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  @media (max-width: 520px) {
+    #tab1 .mode-switch { grid-template-columns: 1fr; }
+  }
+
+  .excel-upload-zone {
+    border: 2px dashed #0ea5e9;
+    background: linear-gradient(to bottom, #f0f9ff, #e0f2fe);
+    border-radius: 10px;
+    padding: 20px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+  .excel-upload-zone:hover {
+    background: linear-gradient(to bottom, #e0f2fe, #bae6fd);
+    border-color: #0369a1;
+  }
+  .excel-upload-zone.dragover {
+    background: #bae6fd;
+    border-color: #0369a1;
+    transform: scale(1.02);
+  }
+  .excel-upload-zone.has-file {
+    border-style: solid;
+    border-color: #10b981;
+    background: linear-gradient(to bottom, #f0fdf4, #dcfce7);
+  }
+  .excel-upload-icon {
+    font-size: 36px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .excel-upload-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0369a1;
+    margin-bottom: 4px;
+  }
+  .excel-upload-zone.has-file .excel-upload-text { color: #047857; }
+  .excel-upload-sub {
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .excel-upload-zone input[type="file"] { display: none; }
+
+  .template-btn {
+    width: 100%;
+    padding: 10px;
+    background: white;
+    color: #0369a1;
+    border: 1.5px solid #0ea5e9;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .template-btn:hover {
+    background: #f0f9ff;
+    transform: translateY(-1px);
+  }
+
+  .bulk-global-opts {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #e5e7eb;
+  }
+  .bulk-global-opts h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0369a1;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .items-preview {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    max-height: 180px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+  .items-preview-header {
+    font-weight: 700;
+    color: #0369a1;
+    font-size: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .items-preview-count {
+    background: #0ea5e9;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .items-preview ul {
+    list-style: none;
+    padding: 0;
+  }
+  .items-preview li {
+    padding: 6px 0;
+    border-bottom: 1px dashed #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11.5px;
+    color: #4b5563;
+  }
+  .items-preview li:last-child { border-bottom: none; }
+  .items-preview-name {
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .items-preview-dims {
+    color: #6b7280;
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* 일괄 결과 카드 */
+  .bulk-results-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .bulk-download-btn {
+    flex: 1;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .bulk-download-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16,185,129,0.25);
+  }
+
+  .bulk-item-card {
+    background: white;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .bulk-item-card:hover {
+    border-color: #0ea5e9;
+    box-shadow: 0 3px 10px rgba(14,165,233,0.08);
+    transform: translateY(-1px);
+  }
+  .bulk-item-card.selected {
+    border-color: #10b981;
+    border-width: 2px;
+    background: linear-gradient(to bottom, #f0fdf4, white);
+    box-shadow: 0 4px 14px rgba(16,185,129,0.18);
+  }
+  .bulk-item-card.selected::before {
+    content: '👁 3D 뷰에 표시중';
+    position: absolute;
+    top: -9px; right: 12px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .bulk-item-card.error-card {
+    border-color: #fca5a5;
+    background: linear-gradient(to bottom, #fef2f2, white);
+    cursor: not-allowed;
+  }
+  .bulk-item-card.error-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .bulk-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .bulk-item-title {
+    font-weight: 800;
+    color: #1f2937;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bulk-item-index {
+    background: #0ea5e9;
+    color: white;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .bulk-item-code {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 600;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .bulk-item-specs {
+    font-size: 12px;
+    color: #4b5563;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.6;
+  }
+  .bulk-item-specs strong {
+    color: #0369a1;
+    font-weight: 700;
+  }
+  .bulk-item-rec {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border-left: 4px solid #10b981;
+    border-radius: 8px;
+  }
+  .bulk-item-rec-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #047857;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 5px;
+  }
+  .bulk-item-rec-dims {
+    font-size: 19px;
+    font-weight: 800;
+    color: #065f46;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .bulk-item-rec-dims .unit {
+    font-size: 12px;
+    color: #059669;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  .bulk-item-rec-meta {
+    display: flex;
+    gap: 14px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: #065f46;
+    flex-wrap: wrap;
+  }
+  .bulk-item-rec-meta span strong {
+    color: #047857;
+    font-weight: 700;
+  }
+  .bulk-item-alternatives {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #a7f3d0;
+    font-size: 11px;
+    color: #065f46;
+  }
+  .bulk-item-alternatives strong {
+    color: #047857;
+  }
+  .bulk-item-error {
+    color: #991b1b;
+    font-size: 12px;
+    padding: 10px;
+    background: #fef2f2;
+    border-radius: 6px;
+    border-left: 3px solid #ef4444;
+  }
+  .bulk-summary-bar {
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    color: white;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .bulk-summary-item { text-align: center; }
+  .bulk-summary-value { font-size: 22px; font-weight: 800; line-height: 1.1; }
+  .bulk-summary-label { font-size: 11px; opacity: 0.85; margin-top: 3px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🚢 통합 물류 적재 시뮬레이터</h1>
+    <p>단품 → 아웃박스 → 파렛트 → 컨테이너 수출 적재 전체 워크플로우 계산</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="tab1">
+      <span class="tab-icon">📦</span>단품 ↔ 아웃박스
+    </button>
+    <button class="tab" data-tab="tab2">
+      <span class="tab-icon">🎁</span>아웃박스 ↔ 파렛트
+    </button>
+    <button class="tab" data-tab="tab3">
+      <span class="tab-icon">🚢</span>파렛트 → 컨테이너
+    </button>
+    <button class="tab" data-tab="tab4">
+      <span class="tab-icon">📊</span>통합 시뮬레이션
+    </button>
+  </div>
+
+  <!-- ========== TAB 1: 단품 ↔ 아웃박스 ========== -->
+  <div class="tab-content active" id="tab1">
+    <div class="grid-main">
+      <div class="card">
+        <div class="mode-switch">
+          <button class="mode-btn active" data-mode="calc" onclick="setT1Mode('calc')">
+            📊 박스당<br>입수량 계산
+          </button>
+          <button class="mode-btn" data-mode="recommend" onclick="setT1Mode('recommend')">
+            🎯 입수량 기준<br>박스 추천
+          </button>
+          <button class="mode-btn" data-mode="bulk" onclick="setT1Mode('bulk')">
+            📋 엑셀<br>일괄 업로드
+          </button>
+        </div>
+
+        <h2 id="t1-title">단품 → 아웃박스 입수량 계산</h2>
+
+        <div class="input-group" id="t1-item-size-group">
+          <label>단품 (내용물) 크기 (mm)</label>
+          <div class="input-row three">
+            <input type="number" id="t1-itemL" value="120" placeholder="가로">
+            <input type="number" id="t1-itemW" value="80" placeholder="세로">
+            <input type="number" id="t1-itemH" value="50" placeholder="높이">
+          </div>
+        </div>
+
+        <div class="input-group" id="t1-item-weight-group">
+          <label>단품 중량 (g)</label>
+          <input type="number" id="t1-itemWeight" value="150" min="0">
+        </div>
+
+        <!-- 모드 A: 입수량 계산 (기존 박스 크기 입력) -->
+        <div id="t1-mode-calc" class="mode-content">
+          <div class="input-group">
+            <label>아웃박스 내부 크기 (mm)</label>
+            <div class="input-row three">
+              <input type="number" id="t1-boxL" value="400" placeholder="가로">
+              <input type="number" id="t1-boxW" value="300" placeholder="세로">
+              <input type="number" id="t1-boxH" value="250" placeholder="높이">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>제품 특성 (단수 권장 기준)</label>
+            <select id="t1-productTypeA">
+              <option value="normal" selected>📦 일반 제품</option>
+              <option value="heavy">🔨 무거운 제품 (낮은 단수 권장)</option>
+              <option value="fragile">🍷 약한/깨지기 쉬운 제품 (낮은 단수)</option>
+              <option value="light">🪶 가벼운 제품 (단수 여유)</option>
+              <option value="durable">🧱 단단한 제품 (단수 여유)</option>
+            </select>
+          </div>
+          <div class="checkbox-row" style="padding: 8px 12px; background: #fef3c7; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #f59e0b;">
+            <input type="checkbox" id="t1-evenOnly" checked>
+            <label for="t1-evenOnly" style="margin:0; font-weight:600; color:#92400e;">
+              🔢 짝수 입수량으로 조정 (홀수 시 자동 감소)
+            </label>
+          </div>
+          <div class="alert info" style="font-size:12px; margin-bottom:12px;">
+            💡 단품을 6가지 방향으로 회전시켜 가장 많이 담기는 배치를 찾습니다.<br>
+            <span style="color:#92400e;">🔢 <strong>짝수 제약 ON</strong>: 홀수 결과 시 자동으로 가까운 짝수로 감소 (예: 81개→72개)</span>
+          </div>
+        </div>
+
+        <!-- 모드 B: 박스 추천 (입수량 입력) -->
+        <div id="t1-mode-recommend" class="mode-content" style="display:none;">
+          <div class="input-group">
+            <label>🎯 목표 입수량 (1CT 카톤당)</label>
+            <input type="number" id="t1-targetQty" value="24" min="1" max="2000">
+            <div id="t1-evenHint" style="font-size:11px; color:#d97706; margin-top:4px; display:none;">
+              ⚠️ 홀수 입수량입니다. 짝수 권장 (24, 48, 72, 96, 120 등)
+            </div>
+          </div>
+          <div class="input-group">
+            <label>제품 특성 (단수 가중치 자동 조정)</label>
+            <select id="t1-productTypeB">
+              <option value="normal" selected>📦 일반 제품</option>
+              <option value="heavy">🔨 무거운 제품 (낮은 단수 권장)</option>
+              <option value="fragile">🍷 약한/깨지기 쉬운 제품 (낮은 단수)</option>
+              <option value="light">🪶 가벼운 제품 (단수 여유)</option>
+              <option value="durable">🧱 단단한 제품 (단수 여유)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>정렬 우선순위</label>
+            <select id="t1-sortBy">
+              <option value="balanced" selected>✨ 균형 점수 (종합 추천)</option>
+              <option value="layers">📉 단수 최소 (눌림 방지)</option>
+              <option value="volume">📦 체적 최소 (박스 크기 우선)</option>
+              <option value="cube">⬜ 정사각형 형태 (범용)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>패킹 여유 (박스 내부 공간, mm)</label>
+            <input type="number" id="t1-padding" value="5" min="0">
+          </div>
+          <div class="input-group">
+            <label>최대 종횡비 (박스 형태 제한)</label>
+            <select id="t1-maxAspect">
+              <option value="2">2:1 이내 (정사각형에 가까움)</option>
+              <option value="3" selected>3:1 이내 (일반적)</option>
+              <option value="5">5:1 이내 (길쭉한 박스 허용)</option>
+              <option value="99">제한 없음</option>
+            </select>
+          </div>
+          <div class="alert info" style="font-size:12px; margin-bottom:12px;">
+            💡 입수량을 인수분해하여 가능한 모든 배치를 검토하고 <strong>선택한 기준 상위 6개</strong>를 추천합니다.
+          </div>
+        </div>
+
+        <!-- 모드 C: 엑셀 일괄 업로드 -->
+        <div id="t1-mode-bulk" class="mode-content" style="display:none;">
+          <button class="template-btn" onclick="downloadExcelTemplate()">
+            📥 엑셀 템플릿 다운로드
+          </button>
+
+          <label class="excel-upload-zone" id="t1-upload-zone">
+            <input type="file" id="t1-excel-file" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)">
+            <span class="excel-upload-icon">📄</span>
+            <div class="excel-upload-text" id="t1-upload-text">엑셀 파일을 선택하거나 끌어다 놓으세요</div>
+            <div class="excel-upload-sub" id="t1-upload-sub">.xlsx, .xls, .csv 지원</div>
+          </label>
+
+          <div id="t1-items-preview" class="items-preview" style="display:none;">
+            <div class="items-preview-header">
+              <span>📦 업로드된 품목</span>
+              <span class="items-preview-count" id="t1-items-count">0</span>
+            </div>
+            <ul id="t1-items-list"></ul>
+          </div>
+
+          <div class="bulk-global-opts">
+            <h4>🎛️ 일괄 추천 옵션 (전체 품목에 공통 적용)</h4>
+            <div class="input-group">
+              <label>정렬 우선순위</label>
+              <select id="t1-bulk-sortBy">
+                <option value="balanced" selected>✨ 균형 점수 (종합 추천)</option>
+                <option value="layers">📉 단수 최소 (눌림 방지)</option>
+                <option value="volume">📦 체적 최소 (박스 크기 우선)</option>
+                <option value="cube">⬜ 정사각형 형태 (범용)</option>
+              </select>
+            </div>
+            <div class="input-row two">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>패킹 여유 (mm)</label>
+                <input type="number" id="t1-bulk-padding" value="5" min="0">
+              </div>
+              <div class="input-group" style="margin-bottom:0;">
+                <label>최대 종횡비</label>
+                <select id="t1-bulk-maxAspect">
+                  <option value="2">2:1 이내</option>
+                  <option value="3" selected>3:1 이내</option>
+                  <option value="5">5:1 이내</option>
+                  <option value="99">제한 없음</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-group" style="margin-bottom:0; margin-top:10px;">
+              <label>제품 특성</label>
+              <select id="t1-bulk-productType">
+                <option value="normal" selected>📦 일반 제품</option>
+                <option value="heavy">🔨 무거운 제품 (낮은 단수 권장)</option>
+                <option value="fragile">🍷 약한/깨지기 쉬운 제품</option>
+                <option value="light">🪶 가벼운 제품 (단수 여유)</option>
+                <option value="durable">🧱 단단한 제품 (단수 여유)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="alert info" style="font-size:12px; margin-bottom:12px;">
+            💡 엑셀 파일의 각 품목마다 단품 크기·중량·입수량을 기준으로 <strong>최적 아웃박스 규격</strong>을 일괄 추천합니다.<br>
+            <span style="color:#92400e;">📊 결과는 엑셀로 다운로드할 수 있습니다.</span>
+          </div>
+        </div>
+
+        <button class="primary" id="t1-button" onclick="runT1()">계산 및 3D 렌더링</button>
+      </div>
+
+      <div class="card">
+        <h2 id="t1-result-title">아웃박스 적재 시뮬레이션</h2>
+        <div id="t1-error"></div>
+        <div id="t1-summary" class="summary-bar" style="display:none;">
+          <div class="summary-item"><div class="summary-value" id="t1-sum-count">-</div><div class="summary-label">박스당 단품</div></div>
+          <div class="summary-item"><div class="summary-value" id="t1-sum-orient">-</div><div class="summary-label">배치 (가로×세로×단)</div></div>
+          <div class="summary-item"><div class="summary-value" id="t1-sum-eff">-</div><div class="summary-label">체적 효율</div></div>
+          <div class="summary-item"><div class="summary-value" id="t1-sum-weight">-</div><div class="summary-label">박스당 중량</div></div>
+        </div>
+        <div id="t1-space-info" class="space-info" style="display:none;">
+          <div class="space-info-title">📐 <span id="t1-space-title">박스 내부 남은 공간</span></div>
+          <div class="space-info-context" id="t1-space-context"></div>
+          <div class="space-info-grid">
+            <div class="space-item">
+              <div class="space-item-label">가로 여유</div>
+              <div class="space-item-value" id="t1-space-L">-</div>
+              <div class="space-item-sub" id="t1-space-L-sub"></div>
+            </div>
+            <div class="space-item">
+              <div class="space-item-label">세로 여유</div>
+              <div class="space-item-value" id="t1-space-W">-</div>
+              <div class="space-item-sub" id="t1-space-W-sub"></div>
+            </div>
+            <div class="space-item">
+              <div class="space-item-label">높이 여유</div>
+              <div class="space-item-value" id="t1-space-H">-</div>
+              <div class="space-item-sub" id="t1-space-H-sub"></div>
+            </div>
+          </div>
+        </div>
+        <div id="t1-recommendations" style="display:none;">
+          <div class="rec-intro" id="t1-rec-intro">📦 체적 순으로 최적 박스 규격을 추천합니다. 카드를 클릭하면 3D로 미리볼 수 있습니다.</div>
+          <div class="recommendations-list" id="t1-rec-list"></div>
+        </div>
+
+        <!-- 일괄 업로드 결과 -->
+        <div id="t1-bulk-results" style="display:none;">
+          <div class="rec-intro">📦 카드를 클릭하면 해당 품목의 단품 → 아웃박스 배치를 <strong>3D로 미리볼 수 있습니다</strong>.</div>
+          <div id="t1-bulk-summary" class="bulk-summary-bar">
+            <div class="bulk-summary-item">
+              <div class="bulk-summary-value" id="t1-bulk-total">0</div>
+              <div class="bulk-summary-label">총 품목 수</div>
+            </div>
+            <div class="bulk-summary-item">
+              <div class="bulk-summary-value" id="t1-bulk-success">0</div>
+              <div class="bulk-summary-label">추천 성공</div>
+            </div>
+            <div class="bulk-summary-item">
+              <div class="bulk-summary-value" id="t1-bulk-failed">0</div>
+              <div class="bulk-summary-label">오류/불가</div>
+            </div>
+          </div>
+          <div class="bulk-results-toolbar">
+            <button class="bulk-download-btn" onclick="downloadBulkResults()">
+              📊 추천 결과 엑셀 다운로드
+            </button>
+          </div>
+          <div id="t1-bulk-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TAB 2: 아웃박스 → 파렛트 ========== -->
+  <div class="tab-content" id="tab2">
+    <div class="grid-main">
+      <div class="card">
+        <div class="mode-switch">
+          <button class="mode-btn active" data-t2-mode="auto" onclick="setT2Mode('auto')">
+            🤖 자동<br>최적 배치
+          </button>
+          <button class="mode-btn" data-t2-mode="manual" onclick="setT2Mode('manual')">
+            ✏️ 수동<br>방단수 입력
+          </button>
+        </div>
+
+        <h2 id="t2-title">아웃박스 → 파렛트 적재 계산</h2>
+
+        <div class="input-group">
+          <label>파렛트 프리셋</label>
+          <div class="preset-row three">
+            <div class="preset active" data-pallet="T11" onclick="setPalletPreset('T11')">T11<br>1100×1100</div>
+            <div class="preset" data-pallet="T12" onclick="setPalletPreset('T12')">T12<br>1200×1000</div>
+            <div class="preset" data-pallet="EURO" onclick="setPalletPreset('EURO')">EURO<br>1200×800</div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>파렛트 규격 (mm)</label>
+          <div class="input-row two">
+            <input type="number" id="t2-palletL" value="1100">
+            <input type="number" id="t2-palletW" value="1100">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>아웃박스 크기 (mm) — 가로×세로×높이</label>
+          <div class="input-row three">
+            <input type="number" id="t2-boxL" value="400">
+            <input type="number" id="t2-boxW" value="300">
+            <input type="number" id="t2-boxH" value="250">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>박스 중량 (kg)</label>
+          <input type="number" id="t2-boxWeight" value="10" min="0" step="0.1">
+        </div>
+
+        <div class="input-group">
+          <label>최대 적재 높이 (mm, 파렛트 포함)</label>
+          <input type="number" id="t2-maxHeight" value="1500">
+        </div>
+
+        <div class="input-group">
+          <label>파렛트 자체 높이 / 최대 중량 (kg)</label>
+          <div class="input-row two">
+            <input type="number" id="t2-palletH" value="150">
+            <input type="number" id="t2-maxWeight" value="1000">
+          </div>
+        </div>
+
+        <!-- 적재 패턴 선택 -->
+        <div class="input-group">
+          <label>🎨 파렛트 적재 패턴</label>
+          <div class="pattern-grid">
+            <div class="pattern-card active" data-pattern="auto" onclick="setT2Pattern('auto')">
+              <svg class="pattern-icon-svg" viewBox="0 0 40 40">
+                <rect x="4" y="4" width="32" height="32" fill="none" stroke="#0ea5e9" stroke-width="1.5" rx="2"/>
+                <rect x="7" y="7" width="11" height="8" fill="#0ea5e9" opacity="0.3" stroke="#0ea5e9" stroke-width="1"/>
+                <rect x="22" y="7" width="11" height="8" fill="#0ea5e9" opacity="0.3" stroke="#0ea5e9" stroke-width="1"/>
+                <rect x="7" y="18" width="8" height="11" fill="#0ea5e9" opacity="0.3" stroke="#0ea5e9" stroke-width="1"/>
+                <rect x="18" y="18" width="15" height="11" fill="#0ea5e9" opacity="0.3" stroke="#0ea5e9" stroke-width="1"/>
+                <text x="20" y="37" text-anchor="middle" font-size="5" fill="#0ea5e9" font-weight="bold">AUTO</text>
+              </svg>
+              <div class="pattern-name">자동 최적</div>
+              <div class="pattern-desc">최대 수량</div>
+            </div>
+            <div class="pattern-card" data-pattern="block" onclick="setT2Pattern('block')">
+              <svg class="pattern-icon-svg" viewBox="0 0 40 40">
+                <rect x="4" y="4" width="32" height="32" fill="none" stroke="#64748b" stroke-width="1.5" rx="2"/>
+                <rect x="7" y="7" width="10" height="10" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="18" y="7" width="10" height="10" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="29" y="7" width="4" height="10" fill="#60a5fa" opacity="0.35" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="7" y="18" width="10" height="10" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="18" y="18" width="10" height="10" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="29" y="18" width="4" height="10" fill="#60a5fa" opacity="0.35" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="7" y="29" width="26" height="4" fill="#60a5fa" opacity="0.35" stroke="#1e40af" stroke-width="0.8"/>
+              </svg>
+              <div class="pattern-name">블록 적재</div>
+              <div class="pattern-desc">동일 방향</div>
+            </div>
+            <div class="pattern-card" data-pattern="brick" onclick="setT2Pattern('brick')">
+              <svg class="pattern-icon-svg" viewBox="0 0 40 40">
+                <rect x="4" y="4" width="32" height="32" fill="none" stroke="#64748b" stroke-width="1.5" rx="2"/>
+                <!-- 층 1: 가로 방향 -->
+                <rect x="7" y="7" width="13" height="6" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="20" y="7" width="13" height="6" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <!-- 층 2: 세로 방향 -->
+                <rect x="7" y="14" width="6" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="14" y="14" width="6" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="21" y="14" width="6" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="28" y="14" width="5" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <!-- 층 3: 가로 방향 -->
+                <rect x="7" y="28" width="13" height="5" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="20" y="28" width="13" height="5" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+              </svg>
+              <div class="pattern-name">벽돌 적재</div>
+              <div class="pattern-desc">층별 90° 교차</div>
+            </div>
+            <div class="pattern-card" data-pattern="pinwheel" onclick="setT2Pattern('pinwheel')">
+              <svg class="pattern-icon-svg" viewBox="0 0 40 40">
+                <rect x="4" y="4" width="32" height="32" fill="none" stroke="#64748b" stroke-width="1.5" rx="2"/>
+                <!-- 풍차 4개 박스 -->
+                <rect x="7" y="7" width="15" height="8" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="22" y="7" width="11" height="15" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="18" y="25" width="15" height="8" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="7" y="18" width="11" height="15" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+              </svg>
+              <div class="pattern-name">핀휠 적재</div>
+              <div class="pattern-desc">풍차형 맞물림</div>
+            </div>
+            <div class="pattern-card" data-pattern="row" onclick="setT2Pattern('row')">
+              <svg class="pattern-icon-svg" viewBox="0 0 40 40">
+                <rect x="4" y="4" width="32" height="32" fill="none" stroke="#64748b" stroke-width="1.5" rx="2"/>
+                <!-- 행별로 방향 다름 -->
+                <rect x="7" y="7" width="13" height="7" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="20" y="7" width="13" height="7" fill="#60a5fa" opacity="0.6" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="7" y="15" width="7" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="14" y="15" width="7" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="21" y="15" width="7" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="28" y="15" width="5" height="13" fill="#f87171" opacity="0.6" stroke="#7f1d1d" stroke-width="0.8"/>
+                <rect x="7" y="29" width="13" height="4" fill="#60a5fa" opacity="0.4" stroke="#1e40af" stroke-width="0.8"/>
+                <rect x="20" y="29" width="13" height="4" fill="#60a5fa" opacity="0.4" stroke="#1e40af" stroke-width="0.8"/>
+              </svg>
+              <div class="pattern-name">행 혼합</div>
+              <div class="pattern-desc">같은층 혼합</div>
+            </div>
+          </div>
+          <div id="t2-pattern-info" style="font-size:11px; color:#64748b; margin-top:8px; padding:8px 10px; background:#f0f9ff; border-left:3px solid #0ea5e9; border-radius:6px; line-height:1.5;">
+            💡 <strong style="color:#0369a1;">자동 최적</strong>: 블록/혼합 중 가장 많이 담기는 패턴 자동 선택
+          </div>
+        </div>
+
+        <!-- 수동 모드: 방단수 입력 -->
+        <div id="t2-mode-manual" class="mode-content" style="display:none;">
+          <div class="input-group" style="background:#fef3c7; padding:10px; border-radius:8px; border-left:3px solid #f59e0b;">
+            <label style="color:#92400e;">✏️ 방수(층당 박스) × 단수(층 수) 수동 지정</label>
+            <div class="input-row two">
+              <input type="number" id="t2-manualRows" value="8" min="1" placeholder="방수">
+              <input type="number" id="t2-manualLayers" value="5" min="1" placeholder="단수">
+            </div>
+            <div style="font-size:11px; color:#92400e; margin-top:6px;">
+              💡 고객 스펙 검증용 — 지정한 수량이 파렛트에 맞는지 체크합니다
+            </div>
+          </div>
+        </div>
+
+        <!-- 중앙 정렬 옵션 -->
+        <div class="input-group" style="background:#f0fdf4; padding:10px; border-radius:8px; border-left:3px solid #10b981;">
+          <div class="checkbox-row" style="padding:0;">
+            <input type="checkbox" id="t2-centerAlign" checked>
+            <label for="t2-centerAlign" style="margin:0; font-weight:600; color:#065f46;">
+              🎯 파렛트 중앙 정렬 (균형 배치)
+            </label>
+          </div>
+          <div style="font-size:11px; color:#64748b; margin-top:4px;">
+            💡 박스 배치를 파렛트 중앙으로 이동시켜 좌우·앞뒤 여유를 대칭으로 맞춥니다 (지게차 취급, 무게중심, 층간 안정성 유리)
+          </div>
+        </div>
+
+        <!-- 오버행 옵션 (양쪽 모드 공통) -->
+        <div class="input-group" style="background:#f0f9ff; padding:10px; border-radius:8px; border-left:3px solid #0ea5e9;">
+          <div class="checkbox-row" style="padding:0;">
+            <input type="checkbox" id="t2-allowOverhang" onchange="toggleT2Overhang()">
+            <label for="t2-allowOverhang" style="margin:0; font-weight:600; color:#0369a1;">
+              📐 파렛트 외곽 초과(오버행) 허용
+            </label>
+          </div>
+          <div id="t2-overhang-amount" style="display:none; margin-top:8px;">
+            <label style="font-size:11px; color:#0369a1;">최대 초과 허용 (각 면, mm)</label>
+            <input type="number" id="t2-overhangMax" value="50" min="0" max="200">
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">
+              💡 일반적 업계 기준: 30~50mm (적재 안정성 고려)
+            </div>
+          </div>
+        </div>
+
+        <button class="primary" id="t2-button" onclick="calculateTab2()">계산 및 3D 렌더링</button>
+      </div>
+
+      <div class="card">
+        <h2>파렛트 적재 시뮬레이션<span id="t2-pattern-badge"></span></h2>
+        <div id="t2-error"></div>
+        <div id="t2-summary" class="summary-bar" style="display:none;">
+          <div class="summary-item"><div class="summary-value" id="t2-sum-perLayer">-</div><div class="summary-label">단당 박스 (방수)</div></div>
+          <div class="summary-item"><div class="summary-value" id="t2-sum-layers">-</div><div class="summary-label">적재 단수</div></div>
+          <div class="summary-item"><div class="summary-value" id="t2-sum-total">-</div><div class="summary-label">총 박스</div></div>
+          <div class="summary-item"><div class="summary-value" id="t2-sum-cbm">-</div><div class="summary-label">CBM (m³)</div></div>
+        </div>
+        <div id="t2-space-info" class="space-info" style="display:none;">
+          <div class="space-info-title">📐 <span id="t2-space-title">파렛트 남은 공간</span></div>
+          <div class="space-info-context" id="t2-space-context"></div>
+          <div class="space-info-grid">
+            <div class="space-item">
+              <div class="space-item-label">가로 여유</div>
+              <div class="space-item-value" id="t2-space-L">-</div>
+              <div class="space-item-sub" id="t2-space-L-sub"></div>
+            </div>
+            <div class="space-item">
+              <div class="space-item-label">세로 여유</div>
+              <div class="space-item-value" id="t2-space-W">-</div>
+              <div class="space-item-sub" id="t2-space-W-sub"></div>
+            </div>
+            <div class="space-item">
+              <div class="space-item-label">높이 여유</div>
+              <div class="space-item-value" id="t2-space-H">-</div>
+              <div class="space-item-sub" id="t2-space-H-sub"></div>
+            </div>
+          </div>
+        </div>
+        <div id="t2-overhang-info"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TAB 3: 파렛트 → 컨테이너 ========== -->
+  <div class="tab-content" id="tab3">
+    <div class="grid-main">
+      <div class="card">
+        <h2>파렛트 → 컨테이너 적재 계산</h2>
+
+        <div class="input-group">
+          <label>컨테이너 타입</label>
+          <div class="preset-row three">
+            <div class="preset active" data-container="20GP" onclick="setContainerPreset('20GP')">20FT<br>GP</div>
+            <div class="preset" data-container="40GP" onclick="setContainerPreset('40GP')">40FT<br>GP</div>
+            <div class="preset" data-container="40HC" onclick="setContainerPreset('40HC')">40FT<br>HC</div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>컨테이너 내부 규격 (mm) — 길이×폭×높이</label>
+          <div class="input-row three">
+            <input type="number" id="t3-contL" value="5898">
+            <input type="number" id="t3-contW" value="2352">
+            <input type="number" id="t3-contH" value="2393">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>컨테이너 최대 적재 중량 (kg)</label>
+          <input type="number" id="t3-contMaxWeight" value="28200">
+        </div>
+
+        <div class="input-group">
+          <label>파렛트 규격 (mm) — 가로×세로</label>
+          <div class="input-row two">
+            <input type="number" id="t3-palletL" value="1100">
+            <input type="number" id="t3-palletW" value="1100">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>적재 높이 (mm, 파렛트+박스 포함)</label>
+          <input type="number" id="t3-loadHeight" value="1500">
+        </div>
+
+        <div class="input-group">
+          <label>파렛트 1개 중량 (kg, 내용물 포함)</label>
+          <input type="number" id="t3-palletWeight" value="850">
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="t3-doubleStack">
+          <label for="t3-doubleStack" style="margin:0; font-weight:500;">파렛트 2단 적재 허용</label>
+        </div>
+
+        <button class="primary" onclick="calculateTab3()">계산 및 3D 렌더링</button>
+      </div>
+
+      <div class="card">
+        <h2>컨테이너 적재 시뮬레이션</h2>
+        <div id="t3-error"></div>
+        <div id="t3-summary" class="summary-bar" style="display:none;">
+          <div class="summary-item"><div class="summary-value" id="t3-sum-floor">-</div><div class="summary-label">바닥면 파렛트</div></div>
+          <div class="summary-item"><div class="summary-value" id="t3-sum-stacks">-</div><div class="summary-label">적재 단수</div></div>
+          <div class="summary-item"><div class="summary-value" id="t3-sum-total">-</div><div class="summary-label">총 파렛트</div></div>
+          <div class="summary-item"><div class="summary-value" id="t3-sum-util">-</div><div class="summary-label">공간 활용률</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TAB 4: 통합 시뮬레이션 ========== -->
+  <div class="tab-content" id="tab4">
+    <div class="card">
+      <h2>🔗 단품부터 컨테이너까지 한번에 계산</h2>
+      <p style="color:#6b7280; font-size:13px; margin-bottom:14px;">
+        모든 단계의 크기를 입력하면 컨테이너 1대 = 단품 몇 개까지 들어가는지 자동 계산됩니다.
+      </p>
+
+      <div class="integrated-layout">
+        <div>
+          <div class="input-section">
+            <h3>📦 ① 단품 정보</h3>
+            <div class="input-row three">
+              <input type="number" id="t4-itemL" value="120" placeholder="가로">
+              <input type="number" id="t4-itemW" value="80" placeholder="세로">
+              <input type="number" id="t4-itemH" value="50" placeholder="높이">
+            </div>
+            <div class="input-row two" style="margin-top:6px;">
+              <input type="number" id="t4-itemWeight" value="150" placeholder="중량 (g)">
+              <input type="number" id="t4-itemPrice" value="0" placeholder="단가 (원, 선택)">
+            </div>
+          </div>
+
+          <div class="input-section">
+            <h3>🎁 ② 아웃박스 정보</h3>
+            <div class="input-row three">
+              <input type="number" id="t4-boxL" value="400" placeholder="가로">
+              <input type="number" id="t4-boxW" value="300" placeholder="세로">
+              <input type="number" id="t4-boxH" value="250" placeholder="높이">
+            </div>
+            <div style="font-size:11px; color:#6b7280; margin-top:6px;">아웃박스 내부 치수 기준</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="input-section">
+            <h3>🏗 ③ 파렛트 정보</h3>
+            <div class="preset-row three" style="margin-bottom:8px;">
+              <div class="preset active" data-t4-pallet="T11" onclick="setT4Pallet('T11')">T11<br>1100×1100</div>
+              <div class="preset" data-t4-pallet="T12" onclick="setT4Pallet('T12')">T12<br>1200×1000</div>
+              <div class="preset" data-t4-pallet="EURO" onclick="setT4Pallet('EURO')">EURO<br>1200×800</div>
+            </div>
+            <div class="input-row three">
+              <input type="number" id="t4-palletL" value="1100" placeholder="가로">
+              <input type="number" id="t4-palletW" value="1100" placeholder="세로">
+              <input type="number" id="t4-maxHeight" value="1500" placeholder="최대 높이">
+            </div>
+          </div>
+
+          <div class="input-section">
+            <h3>🚢 ④ 컨테이너 정보</h3>
+            <div class="preset-row three">
+              <div class="preset active" data-t4-cont="20GP" onclick="setT4Container('20GP')">20FT GP</div>
+              <div class="preset" data-t4-cont="40GP" onclick="setT4Container('40GP')">40FT GP</div>
+              <div class="preset" data-t4-cont="40HC" onclick="setT4Container('40HC')">40FT HC</div>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="t4-doubleStack">
+              <label for="t4-doubleStack" style="margin:0; font-weight:500;">파렛트 2단 적재 허용</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="primary" onclick="calculateTab4()">전체 계산하기</button>
+
+      <div id="t4-results" style="display:none; margin-top:14px;">
+        <div class="flow-diagram">
+          <div class="flow-step" id="flow-1">
+            <div class="flow-step-icon">📦</div>
+            <div class="flow-step-label">단품</div>
+            <div class="flow-step-value" id="flow-1-val">1</div>
+            <div class="flow-step-unit" id="flow-1-sub">-</div>
+            <div class="flow-arrow">→</div>
+          </div>
+          <div class="flow-step" id="flow-2">
+            <div class="flow-step-icon">🎁</div>
+            <div class="flow-step-label">아웃박스당</div>
+            <div class="flow-step-value" id="flow-2-val">-</div>
+            <div class="flow-step-unit">개</div>
+            <div class="flow-arrow">→</div>
+          </div>
+          <div class="flow-step" id="flow-3">
+            <div class="flow-step-icon">🏗</div>
+            <div class="flow-step-label">파렛트당</div>
+            <div class="flow-step-value" id="flow-3-val">-</div>
+            <div class="flow-step-unit">박스</div>
+            <div class="flow-arrow">→</div>
+          </div>
+          <div class="flow-step" id="flow-4">
+            <div class="flow-step-icon">🚢</div>
+            <div class="flow-step-label">컨테이너당</div>
+            <div class="flow-step-value" id="flow-4-val">-</div>
+            <div class="flow-step-unit">파렛트</div>
+          </div>
+        </div>
+
+        <div class="final-result">
+          <div class="final-result-label">🎯 컨테이너 1대당 총 단품 수량</div>
+          <div class="final-result-value" id="t4-total">-</div>
+          <div class="final-result-sub" id="t4-breakdown">-</div>
+        </div>
+
+        <div class="stats-grid" id="t4-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 3D 뷰어 (공유) ========== -->
+  <div class="card" style="margin-top:14px;" id="viewer-card">
+    <h2>3D 뷰어</h2>
+    <div id="three-container">
+      <div class="loading">입력값을 설정하고 [계산] 버튼을 눌러주세요</div>
+    </div>
+
+    <div class="viewer-controls">
+      <div class="slider-group">
+        <span class="slider-label" style="min-width:110px;"><span id="sliderLabelText">표시 단수</span> <strong><span id="layerVal">0</span></strong></span>
+        <input type="range" id="layerSlider" min="0" max="10" value="10" oninput="onLayerChange()">
+      </div>
+      <button class="btn-small" id="autoRotateBtn" onclick="toggleAutoRotate()">🔄 자동회전</button>
+      <button class="btn-small" onclick="resetView()">🎯 리셋</button>
+    </div>
+
+    <div class="gauge-panel" id="gauge-panel" style="display:none;">
+      <div class="gauge-item">
+        <div class="gauge-label">
+          <span class="gauge-title">📊 <span id="g1-title">적재 진행률</span></span>
+          <strong><span id="g1-current">0</span> / <span id="g1-max">0</span> <span class="gauge-sub">(<span id="g1-pct">0</span>%)</span></strong>
+        </div>
+        <div class="gauge-track"><div class="gauge-fill" id="g1-fill" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-item">
+        <div class="gauge-label">
+          <span class="gauge-title">📦 <span id="g2-title">체적 효율</span></span>
+          <strong><span id="g2-value">0</span><span class="gauge-sub" id="g2-unit">%</span></strong>
+        </div>
+        <div class="gauge-track"><div class="gauge-fill success" id="g2-fill" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-item">
+        <div class="gauge-label">
+          <span class="gauge-title">⚖️ <span id="g3-title">적재 중량</span></span>
+          <strong><span id="g3-value">0</span><span class="gauge-sub" id="g3-unit"> kg</span></strong>
+        </div>
+        <div class="gauge-track"><div class="gauge-fill" id="g3-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ========================================
+// 데이터 상수
+// ========================================
+const CONTAINERS = {
+  '20GP': { name: '20FT GP', L: 5898, W: 2352, H: 2393, maxWeight: 28200 },
+  '40GP': { name: '40FT GP', L: 12032, W: 2352, H: 2393, maxWeight: 26700 },
+  '40HC': { name: '40FT HC', L: 12032, W: 2352, H: 2698, maxWeight: 26500 }
+};
+const PALLETS = {
+  'T11':  { name: 'T11',  L: 1100, W: 1100, H: 150 },
+  'T12':  { name: 'T12',  L: 1200, W: 1000, H: 150 },
+  'EURO': { name: 'EURO', L: 1200, W: 800,  H: 144 }
+};
+
+// ========================================
+// 알고리즘
+// ========================================
+// 2D 블록 배치
+function calcBlock(a, b, L, W) {
+  const cols = Math.floor(L / a);
+  const rows = Math.floor(W / b);
+  const boxes = [];
+  for (let i = 0; i < cols; i++)
+    for (let j = 0; j < rows; j++)
+      boxes.push({ x: i*a, y: j*b, w: a, h: b });
+  return { count: cols * rows, boxes };
+}
+
+// 2D 혼합 배치 (T자, L자, 분할 등)
+function calcMixed(a, b, L, W) {
+  let best = { count: 0, boxes: [] };
+  const tryLayout = (layout) => {
+    if (layout.count > best.count) best = layout;
+  };
+
+  // 수평 분할
+  const maxRowsA = Math.floor(W / b);
+  for (let m = 0; m <= maxRowsA; m++) {
+    const colsA = Math.floor(L / a), usedH = m * b, remH = W - usedH;
+    const colsB = Math.floor(L / b), rowsB = Math.floor(remH / a);
+    const total = colsA * m + colsB * rowsB;
+    if (total > best.count) {
+      const boxes = [];
+      for (let i = 0; i < colsA; i++) for (let j = 0; j < m; j++)
+        boxes.push({ x: i*a, y: j*b, w: a, h: b });
+      for (let i = 0; i < colsB; i++) for (let j = 0; j < rowsB; j++)
+        boxes.push({ x: i*b, y: usedH + j*a, w: b, h: a });
+      best = { count: total, boxes };
+    }
+  }
+  const maxRowsB = Math.floor(W / a);
+  for (let m = 0; m <= maxRowsB; m++) {
+    const colsB = Math.floor(L / b), usedH = m * a, remH = W - usedH;
+    const colsA = Math.floor(L / a), rowsA = Math.floor(remH / b);
+    const total = colsB * m + colsA * rowsA;
+    if (total > best.count) {
+      const boxes = [];
+      for (let i = 0; i < colsB; i++) for (let j = 0; j < m; j++)
+        boxes.push({ x: i*b, y: j*a, w: b, h: a });
+      for (let i = 0; i < colsA; i++) for (let j = 0; j < rowsA; j++)
+        boxes.push({ x: i*a, y: usedH + j*b, w: a, h: b });
+      best = { count: total, boxes };
+    }
+  }
+  // 수직 분할
+  const maxColsA = Math.floor(L / a);
+  for (let n = 0; n <= maxColsA; n++) {
+    const rowsA = Math.floor(W / b), usedL = n * a, remL = L - usedL;
+    const colsB = Math.floor(remL / b), rowsB = Math.floor(W / a);
+    const total = n * rowsA + colsB * rowsB;
+    if (total > best.count) {
+      const boxes = [];
+      for (let i = 0; i < n; i++) for (let j = 0; j < rowsA; j++)
+        boxes.push({ x: i*a, y: j*b, w: a, h: b });
+      for (let i = 0; i < colsB; i++) for (let j = 0; j < rowsB; j++)
+        boxes.push({ x: usedL + i*b, y: j*a, w: b, h: a });
+      best = { count: total, boxes };
+    }
+  }
+  return best;
+}
+
+// 3D 단품 → 아웃박스 (6방향 중 최적)
+// 제품 특성별 균형점수 가중치 (무거운/약한은 단수 억제, 가벼운/단단한은 체적 우선)
+const PRODUCT_WEIGHTS = {
+  normal:   { aspect: 0.45, volume: 0.30, layers: 0.25 },
+  heavy:    { aspect: 0.25, volume: 0.20, layers: 0.55 },
+  fragile:  { aspect: 0.30, volume: 0.20, layers: 0.50 },
+  light:    { aspect: 0.35, volume: 0.50, layers: 0.15 },
+  durable:  { aspect: 0.30, volume: 0.55, layers: 0.15 }
+};
+
+// 홀수 grid → 최대 짝수 grid (손실 최소화)
+function findMaxEvenGrid(maxL, maxW, maxH) {
+  if (maxL === 0 || maxW === 0 || maxH === 0) return { count: 0, nL: 0, nW: 0, nH: 0 };
+  const count = maxL * maxW * maxH;
+  if (count % 2 === 0) return { count, nL: maxL, nW: maxW, nH: maxH };
+  // 홀수 = 세 차원 모두 홀수, 하나를 1 줄여서 짝수화 (손실 최소)
+  const options = [];
+  if (maxL > 1) options.push({ lost: maxW * maxH, nL: maxL - 1, nW: maxW, nH: maxH });
+  if (maxW > 1) options.push({ lost: maxL * maxH, nL: maxL, nW: maxW - 1, nH: maxH });
+  if (maxH > 1) options.push({ lost: maxL * maxW, nL: maxL, nW: maxW, nH: maxH - 1 });
+  if (options.length === 0) return { count: 0, nL: 0, nW: 0, nH: 0 };
+  options.sort((a, b) => a.lost - b.lost);
+  const p = options[0];
+  return { count: p.nL * p.nW * p.nH, nL: p.nL, nW: p.nW, nH: p.nH };
+}
+
+function calc3DPack(item, box, requireEven = false) {
+  const orients = [
+    [item.l, item.w, item.h, 'LWH'],
+    [item.l, item.h, item.w, 'LHW'],
+    [item.w, item.l, item.h, 'WLH'],
+    [item.w, item.h, item.l, 'WHL'],
+    [item.h, item.l, item.w, 'HLW'],
+    [item.h, item.w, item.l, 'HWL']
+  ];
+  let best = { count: 0 };
+  let bestMaxOdd = 0;  // 짝수 제약 시 원래 가능했던 최대값 (참고용 안내)
+  for (const [l, w, h, label] of orients) {
+    const nL = Math.floor(box.L / l);
+    const nW = Math.floor(box.W / w);
+    const nH = Math.floor(box.H / h);
+    const maxCount = nL * nW * nH;
+    if (maxCount > bestMaxOdd) bestMaxOdd = maxCount;
+
+    if (requireEven) {
+      const e = findMaxEvenGrid(nL, nW, nH);
+      if (e.count > best.count) {
+        best = { count: e.count, nL: e.nL, nW: e.nW, nH: e.nH, l, w, h, label };
+      }
+    } else {
+      if (maxCount > best.count) {
+        best = { count: maxCount, nL, nW, nH, l, w, h, label };
+      }
+    }
+  }
+  best.originalMax = bestMaxOdd;
+  return best;
+}
+
+// 파렛트 최적 적재 (블록+혼합+핀휠 중 최대)
+function bestPalletPattern(boxL, boxW, palletL, palletW) {
+  const pA = calcBlock(boxL, boxW, palletL, palletW);
+  const pB = calcBlock(boxW, boxL, palletL, palletW);
+  const pM = calcMixed(boxL, boxW, palletL, palletW);
+  // 핀휠도 후보에 포함 (박스 비율에 따라 이게 더 많이 담길 수 있음)
+  let pP = { count: 0, boxes: [] };
+  try {
+    pP = calcPinwheelRaw(boxL, boxW, palletL, palletW);
+  } catch(e) { /* 핀휠 계산 실패시 무시 */ }
+  const all = [pA, pB, pM, pP];
+  return all.reduce((best, p) => p.count > best.count ? p : best);
+}
+
+// ========================================
+// 파렛트 적재 패턴 알고리즘 (블록/벽돌/핀휠/행혼합)
+// ========================================
+
+// 블록 적재 - 가로/세로 중 더 많이 담기는 방향 선택 (모든 박스 동일 방향)
+function calcBlockBest(a, b, L, W) {
+  const p1 = calcBlock(a, b, L, W);
+  const p2 = calcBlock(b, a, L, W);
+  return p1.count >= p2.count ? p1 : p2;
+}
+
+// 핀휠 적재 - 풍차 모양 4박스 유닛 + 가장자리 채움
+// calcPinwheelRaw: 유닛이 안 들어가면 빈 결과 반환 (auto 비교용)
+function calcPinwheelRaw(boxA, boxB, L, W) {
+  let a = Math.max(boxA, boxB);
+  let b = Math.min(boxA, boxB);
+
+  const unit = a + b;
+  if (unit > L || unit > W) {
+    return { count: 0, boxes: [] };
+  }
+
+  const unitsX = Math.floor(L / unit);
+  const unitsY = Math.floor(W / unit);
+  const boxes = [];
+
+  // 4박스 풍차 유닛 반복 배치
+  for (let ux = 0; ux < unitsX; ux++) {
+    for (let uy = 0; uy < unitsY; uy++) {
+      const ox = ux * unit, oy = uy * unit;
+      boxes.push({ x: ox,       y: oy + a, w: a, h: b });  // 상-좌 가로
+      boxes.push({ x: ox + a,   y: oy + b, w: b, h: a });  // 상-우 세로
+      boxes.push({ x: ox + b,   y: oy,     w: a, h: b });  // 하-우 가로
+      boxes.push({ x: ox,       y: oy,     w: b, h: a });  // 하-좌 세로
+    }
+  }
+
+  // 오른쪽 / 위쪽 여백 블록 채움
+  const usedL = unitsX * unit;
+  const usedW = unitsY * unit;
+  const remL = L - usedL;
+  const remW = W - usedW;
+
+  if (remL > 0 && usedW > 0) {
+    const fillP = calcBlockBest(boxA, boxB, remL, usedW);
+    fillP.boxes.forEach(bx => boxes.push({ ...bx, x: bx.x + usedL }));
+  }
+  if (remW > 0) {
+    const fillP = calcBlockBest(boxA, boxB, L, remW);
+    fillP.boxes.forEach(bx => boxes.push({ ...bx, y: bx.y + usedW }));
+  }
+
+  return { count: boxes.length, boxes };
+}
+
+// calcPinwheel: 유닛이 안 들어가면 블록 패턴으로 폴백 (사용자가 '핀휠' 선택시)
+function calcPinwheel(boxA, boxB, L, W) {
+  const raw = calcPinwheelRaw(boxA, boxB, L, W);
+  if (raw.count === 0) {
+    return calcBlockBest(boxA, boxB, L, W);
+  }
+  return raw;
+}
+
+// 벽돌 적재 - 층별 90° 교차 (2가지 층 패턴 생성)
+function calcBrick(a, b, L, W) {
+  // 층 1: 가로 방향 기본
+  const p1 = calcBlock(a, b, L, W);
+  // 층 2: 세로 방향 (90° 회전)
+  const p2 = calcBlock(b, a, L, W);
+  return {
+    count: p1.count,          // 홀수층 기준
+    boxes: p1.boxes,
+    altCount: p2.count,       // 짝수층
+    altBoxes: p2.boxes,
+    isAlternating: true
+  };
+}
+
+// 패턴 타입에 따른 파렛트 배치
+function getPatternByType(type, boxL, boxW, palletL, palletW) {
+  let result;
+  switch (type) {
+    case 'block':
+      result = calcBlockBest(boxL, boxW, palletL, palletW);
+      break;
+    case 'brick':
+      result = calcBrick(boxL, boxW, palletL, palletW);
+      break;
+    case 'pinwheel':
+      result = calcPinwheel(boxL, boxW, palletL, palletW);
+      break;
+    case 'row':
+      result = calcMixed(boxL, boxW, palletL, palletW);
+      break;
+    case 'auto':
+    default:
+      result = bestPalletPattern(boxL, boxW, palletL, palletW);
+  }
+  result.patternType = type;
+  return result;
+}
+
+// 패턴 타입 → 한글 이름
+const PATTERN_INFO = {
+  auto:     { name: '자동 최적', icon: '🤖', desc: '블록/혼합 중 최대 수량 자동 선택' },
+  block:    { name: '블록 적재', icon: '⬛', desc: '모든 박스 동일 방향 정렬 — 작업이 쉽지만 층간 맞물림 없음 (슈링크랩 필수)' },
+  brick:    { name: '벽돌 적재', icon: '🧱', desc: '층마다 90° 회전 — 층간 맞물림으로 안정성↑, 장거리 운송에 유리' },
+  pinwheel: { name: '핀휠 적재', icon: '🌀', desc: '풍차형 배치 — 직사각형 박스에서 층내 맞물림, 중앙부 안정성 확보' },
+  row:      { name: '행 혼합',   icon: '📊', desc: '같은 층 내에서 방향 혼합 — 파렛트 규격에 맞춰 최대 수량 추구' }
+};
+
+// 파렛트 중앙 정렬 — 박스들의 bounding box를 파렛트 중앙으로 이동
+// 벽돌 패턴의 경우 홀수층/짝수층 각각 독립적으로 중앙 정렬
+function centerPatternOnPallet(pattern, palletL, palletW) {
+  if (!pattern || !pattern.boxes || pattern.boxes.length === 0) return pattern;
+
+  const centerBoxes = (boxes) => {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    boxes.forEach(b => {
+      minX = Math.min(minX, b.x);
+      maxX = Math.max(maxX, b.x + b.w);
+      minY = Math.min(minY, b.y);
+      maxY = Math.max(maxY, b.y + b.h);
+    });
+    const usedL = maxX - minX;
+    const usedW = maxY - minY;
+    const offsetX = (palletL - usedL) / 2 - minX;
+    const offsetY = (palletW - usedW) / 2 - minY;
+    return boxes.map(b => ({ ...b, x: b.x + offsetX, y: b.y + offsetY }));
+  };
+
+  const result = {
+    ...pattern,
+    boxes: centerBoxes(pattern.boxes)
+  };
+  // 벽돌 패턴: 짝수층도 독립 중앙정렬
+  if (pattern.altBoxes && pattern.altBoxes.length > 0) {
+    result.altBoxes = centerBoxes(pattern.altBoxes);
+  }
+  return result;
+}
+
+
+// ========================================
+// Three.js 전역 상태
+// ========================================
+let scene, camera, renderer, contentGroup;
+let theta = Math.PI / 4, phi = Math.PI / 3.2, radius = 3500;
+let targetY = 400, autoRotate = false, threeInit = false;
+let currentRender = null;  // { type, data } for redraw on slider change
+
+function initThree() {
+  if (threeInit) return;
+  const cont = document.getElementById('three-container');
+  cont.querySelector('.loading')?.remove();
+
+  scene = new THREE.Scene();
+  scene.background = null;
+  camera = new THREE.PerspectiveCamera(42, cont.clientWidth / cont.clientHeight, 1, 50000);
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(cont.clientWidth, cont.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  cont.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(1800, 2800, 1200);
+  key.castShadow = true;
+  key.shadow.camera.left = -6000; key.shadow.camera.right = 6000;
+  key.shadow.camera.top = 6000; key.shadow.camera.bottom = -6000;
+  key.shadow.camera.near = 100; key.shadow.camera.far = 15000;
+  key.shadow.mapSize.width = 2048; key.shadow.mapSize.height = 2048;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xbfdbfe, 0.35);
+  fill.position.set(-1500, 1200, -1000);
+  scene.add(fill);
+
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(30000, 30000),
+    new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.95 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  const grid = new THREE.GridHelper(30000, 150, 0xcbd5e1, 0xe2e8f0);
+  grid.position.y = 0.5;
+  scene.add(grid);
+
+  contentGroup = new THREE.Group();
+  scene.add(contentGroup);
+
+  setupControls();
+  window.addEventListener('resize', onResize);
+  threeInit = true;
+  animate();
+}
+
+function setupControls() {
+  let drag = false, px, py;
+  const el = renderer.domElement;
+  el.addEventListener('mousedown', (e) => {
+    drag = true; px = e.clientX; py = e.clientY;
+    autoRotate = false;
+    document.getElementById('autoRotateBtn').classList.remove('active');
+  });
+  window.addEventListener('mouseup', () => drag = false);
+  window.addEventListener('mousemove', (e) => {
+    if (!drag) return;
+    theta -= (e.clientX - px) * 0.008;
+    phi -= (e.clientY - py) * 0.008;
+    phi = Math.max(0.08, Math.min(Math.PI/2 - 0.02, phi));
+    px = e.clientX; py = e.clientY;
+    updateCam();
+  });
+  el.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    radius *= (e.deltaY > 0 ? 1.08 : 0.93);
+    radius = Math.max(300, Math.min(40000, radius));
+    updateCam();
+  }, { passive: false });
+
+  // 터치
+  let tx, ty, pd;
+  el.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }
+    else if (e.touches.length === 2) {
+      pd = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }
+  }, { passive: false });
+  el.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && tx != null) {
+      theta -= (e.touches[0].clientX - tx) * 0.008;
+      phi -= (e.touches[0].clientY - ty) * 0.008;
+      phi = Math.max(0.08, Math.min(Math.PI/2 - 0.02, phi));
+      tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+      updateCam();
+    } else if (e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (pd) { radius *= (pd / d); radius = Math.max(300, Math.min(40000, radius)); updateCam(); }
+      pd = d;
+    }
+  }, { passive: false });
+  el.addEventListener('touchend', () => { tx = null; pd = null; });
+}
+
+function updateCam() {
+  camera.position.x = radius * Math.sin(phi) * Math.cos(theta);
+  camera.position.y = targetY + radius * Math.cos(phi);
+  camera.position.z = radius * Math.sin(phi) * Math.sin(theta);
+  camera.lookAt(0, targetY, 0);
+}
+function animate() {
+  requestAnimationFrame(animate);
+  if (autoRotate) { theta += 0.004; updateCam(); }
+  renderer.render(scene, camera);
+}
+function onResize() {
+  const c = document.getElementById('three-container');
+  camera.aspect = c.clientWidth / c.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(c.clientWidth, c.clientHeight);
+}
+function clearContent() {
+  if (!contentGroup) return;
+  while (contentGroup.children.length) {
+    const c = contentGroup.children[0];
+    c.traverse?.((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+      }
+    });
+    contentGroup.remove(c);
+  }
+}
+function resetView() {
+  if (!currentRender) return;
+  const { maxDim, centerY } = currentRender;
+  theta = Math.PI / 4; phi = Math.PI / 3.2;
+  radius = maxDim * 2.2;
+  targetY = centerY;
+  updateCam();
+}
+function toggleAutoRotate() {
+  autoRotate = !autoRotate;
+  document.getElementById('autoRotateBtn').classList.toggle('active', autoRotate);
+}
+function onLayerChange() {
+  if (!currentRender) return;
+  const v = parseInt(document.getElementById('layerSlider').value);
+  document.getElementById('layerVal').textContent = v;
+  currentRender.visibleLayers = v;
+  currentRender.redraw();
+  updateGauges();
+}
+
+// ========================================
+// 실시간 게이지 (슬라이더에 연동)
+// ========================================
+let gaugeData = null;
+
+function setGaugeData(data) {
+  gaugeData = data;
+  document.getElementById('gauge-panel').style.display = 'grid';
+  document.getElementById('g1-title').textContent = data.label1;
+  document.getElementById('g2-title').textContent = data.label2;
+  document.getElementById('g3-title').textContent = data.label3;
+  document.getElementById('g2-unit').textContent = data.unit2 || '%';
+  document.getElementById('g3-unit').textContent = data.unit3 || ' kg';
+  // 슬라이더 라벨도 맥락에 맞춰 변경
+  document.getElementById('sliderLabelText').textContent =
+    data.sliderLabel || (data.label1 ? '표시 ' + data.label1.split(' ').slice(-1)[0] : '표시 단수');
+  updateGauges();
+}
+
+function updateGauges() {
+  if (!gaugeData) return;
+  const current = currentRender ? (currentRender.visibleLayers ?? gaugeData.maxLayers) : gaugeData.maxLayers;
+  const max = gaugeData.maxLayers;
+  const ratio = max > 0 ? current / max : 0;
+  const pct = ratio * 100;
+
+  // 게이지 1: 단수 진행률
+  document.getElementById('g1-current').textContent = current;
+  document.getElementById('g1-max').textContent = max;
+  document.getElementById('g1-pct').textContent = pct.toFixed(0);
+  const g1 = document.getElementById('g1-fill');
+  g1.style.width = pct + '%';
+  g1.className = 'gauge-fill' + (pct < 5 ? ' empty' : '');
+
+  // 게이지 2: 효율 (현재 단수 기준)
+  const currentEff = gaugeData.efficiency * ratio;
+  document.getElementById('g2-value').textContent = currentEff.toFixed(1);
+  const g2 = document.getElementById('g2-fill');
+  g2.style.width = Math.min(100, currentEff) + '%';
+  const g2cls = currentEff >= gaugeData.efficiency * 0.95 ? 'success' :
+                currentEff >= gaugeData.efficiency * 0.5  ? '' : '';
+  g2.className = 'gauge-fill ' + g2cls + (currentEff < 1 ? ' empty' : '');
+
+  // 게이지 3: 중량 (현재 단수 기준)
+  const currentWt = gaugeData.totalWeight * ratio;
+  let wtDisplay, wtPct, wtCls;
+  if (gaugeData.maxWeight && isFinite(gaugeData.maxWeight) && gaugeData.maxWeight > 0) {
+    wtPct = (currentWt / gaugeData.maxWeight) * 100;
+    wtDisplay = `${currentWt.toLocaleString('ko-KR', {maximumFractionDigits: 1})}`;
+    document.getElementById('g3-unit').textContent = ` / ${gaugeData.maxWeight.toLocaleString()} kg`;
+    wtCls = wtPct > 90 ? 'danger' : wtPct > 70 ? 'warning' : 'success';
+  } else {
+    wtPct = Math.min(100, (currentWt / (gaugeData.totalWeight || 1)) * 100);
+    wtDisplay = currentWt.toLocaleString('ko-KR', {maximumFractionDigits: 2});
+    document.getElementById('g3-unit').textContent = ' kg';
+    wtCls = 'success';
+  }
+  document.getElementById('g3-value').textContent = wtDisplay;
+  const g3 = document.getElementById('g3-fill');
+  g3.style.width = Math.min(100, wtPct) + '%';
+  g3.className = 'gauge-fill ' + wtCls + (currentWt < 0.01 ? ' empty' : '');
+}
+
+// ========================================
+// 남은 여유 공간 표시 (mm + cm 병기)
+// ========================================
+function updateSpaceInfo(prefix, remainL, remainW, remainH, context = null) {
+  const panel = document.getElementById(prefix + '-space-info');
+  if (!panel) return;
+  panel.style.display = 'block';
+
+  // 맥락 정보 업데이트 (박스 크기 / 내용물 크기)
+  const ctxEl = document.getElementById(prefix + '-space-context');
+  if (ctxEl) {
+    if (context) {
+      ctxEl.style.display = 'block';
+      ctxEl.innerHTML = context;
+    } else {
+      ctxEl.style.display = 'none';
+    }
+  }
+
+  let hasExceed = false;
+  const axes = [
+    { key: 'L', val: remainL },
+    { key: 'W', val: remainW },
+    { key: 'H', val: remainH }
+  ];
+
+  axes.forEach(({ key, val }) => {
+    const valEl = document.getElementById(`${prefix}-space-${key}`);
+    const subEl = document.getElementById(`${prefix}-space-${key}-sub`);
+    if (!valEl) return;
+
+    const v = Math.round(val);
+    if (v < 0) {
+      hasExceed = true;
+      const absV = Math.abs(v);
+      valEl.textContent = `-${absV} mm`;
+      valEl.className = 'space-item-value exceed';
+      subEl.textContent = `(${(absV / 10).toFixed(1)} cm 초과 ⚠️)`;
+      subEl.className = 'space-item-sub exceed';
+    } else if (v === 0) {
+      valEl.textContent = '0 mm';
+      valEl.className = 'space-item-value tight';
+      subEl.textContent = '(딱맞음 ✓)';
+      subEl.className = 'space-item-sub warning';
+    } else if (v < 10) {
+      valEl.textContent = `${v} mm`;
+      valEl.className = 'space-item-value tight';
+      subEl.textContent = `(${(v / 10).toFixed(1)} cm, 여유 적음)`;
+      subEl.className = 'space-item-sub warning';
+    } else {
+      valEl.textContent = `${v} mm`;
+      valEl.className = 'space-item-value';
+      subEl.textContent = `(${(v / 10).toFixed(1)} cm)`;
+      subEl.className = 'space-item-sub';
+    }
+  });
+
+  panel.classList.toggle('has-exceed', hasExceed);
+
+  // 업데이트 시각적 피드백 (플래시)
+  panel.classList.remove('flash');
+  void panel.offsetWidth;  // reflow trigger
+  panel.classList.add('flash');
+}
+
+// ========================================
+// 3D 렌더링 함수들
+// ========================================
+
+// [TAB 1] 단품이 아웃박스 안에 배치된 모습
+function render3DProductInBox(item, box, pack) {
+  initThree();
+  clearContent();
+
+  const g = new THREE.Group();
+  contentGroup.add(g);
+
+  // 박스 외곽 (반투명 와이어프레임)
+  const boxGeo = new THREE.BoxGeometry(box.L, box.H, box.W);
+  const boxMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24, transparent: true, opacity: 0.15, side: THREE.DoubleSide
+  });
+  const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+  boxMesh.position.y = box.H / 2;
+  g.add(boxMesh);
+  const boxEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(boxGeo),
+    new THREE.LineBasicMaterial({ color: 0xd97706, linewidth: 2 })
+  );
+  boxEdges.position.y = box.H / 2;
+  g.add(boxEdges);
+
+  // 단품 배치 (visibleLayers 슬라이더에 연동)
+  const { l, w, h, nL, nW, nH } = pack;
+  const isSameTab = currentRender?.type === 'tab1';
+  const visH = isSameTab
+    ? Math.min(nH, currentRender.visibleLayers ?? nH)
+    : nH;
+
+  for (let i = 0; i < nL; i++) {
+    for (let j = 0; j < nW; j++) {
+      for (let k = 0; k < visH; k++) {
+        const itemMat = new THREE.MeshStandardMaterial({
+          color: 0x10b981, roughness: 0.6
+        });
+        const itemGeo = new THREE.BoxGeometry(l * 0.96, h * 0.96, w * 0.96);
+        const mesh = new THREE.Mesh(itemGeo, itemMat);
+        mesh.position.x = -box.L/2 + i*l + l/2;
+        mesh.position.z = -box.W/2 + j*w + w/2;
+        mesh.position.y = k*h + h/2;
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        g.add(mesh);
+        const edges = new THREE.LineSegments(
+          new THREE.EdgesGeometry(itemGeo),
+          new THREE.LineBasicMaterial({ color: 0x065f46, transparent: true, opacity: 0.5 })
+        );
+        mesh.add(edges);
+      }
+    }
+  }
+
+  const maxDim = Math.max(box.L, box.W, box.H);
+  const centerY = box.H / 2;
+  currentRender = {
+    type: 'tab1', maxDim, centerY,
+    visibleLayers: visH,
+    redraw: () => render3DProductInBox(item, box, pack)
+  };
+  targetY = centerY;
+  radius = maxDim * 2.2;
+  theta = Math.PI / 4; phi = Math.PI / 3.2;
+  updateCam();
+
+  document.getElementById('legend').innerHTML = `
+    <div class="legend-item"><div class="legend-box" style="background:#10b981;"></div>단품</div>
+    <div class="legend-item"><div class="legend-box" style="background:#fbbf24; opacity:0.5;"></div>아웃박스</div>
+  `;
+
+  const slider = document.getElementById('layerSlider');
+  slider.max = nH;
+  slider.value = Math.min(parseInt(slider.value) || nH, nH);
+  if (slider.value == 0) slider.value = nH;
+  document.getElementById('layerVal').textContent = slider.value;
+}
+
+// [TAB 2] 파렛트 위에 박스 적재
+function render3DBoxesOnPallet(pattern, params) {
+  initThree();
+  clearContent();
+  const g = new THREE.Group();
+  contentGroup.add(g);
+
+  const { palletL, palletW, palletH, boxH, boxL, layers, overhang = 0 } = params;
+
+  // 파렛트
+  buildPalletInto(g, palletL, palletW, palletH);
+
+  // 오버행 경계선 (파렛트 실제 크기 표시)
+  if (overhang > 0) {
+    const boundGeo = new THREE.BufferGeometry();
+    const half_L = palletL / 2, half_W = palletW / 2;
+    const y = palletH + 2;
+    const vertices = new Float32Array([
+      -half_L, y, -half_W,  half_L, y, -half_W,
+       half_L, y, -half_W,  half_L, y,  half_W,
+       half_L, y,  half_W, -half_L, y,  half_W,
+      -half_L, y,  half_W, -half_L, y, -half_W,
+    ]);
+    boundGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    const boundMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 3 });
+    const boundLines = new THREE.LineSegments(boundGeo, boundMat);
+    g.add(boundLines);
+  }
+
+  // 박스 렌더링 — 층별로 순회하여 벽돌 패턴의 홀/짝 층 교차 지원
+  const visibleLayers = currentRender?.visibleLayers ?? layers;
+  const maxVisLayer = Math.min(layers, visibleLayers);
+  const isBrick = pattern.isAlternating && pattern.altBoxes;
+
+  for (let layer = 0; layer < maxVisLayer; layer++) {
+    // 벽돌 패턴: 홀수 층(0,2,4...)=기본 배치, 짝수 층(1,3,5...)=회전 배치
+    const layerBoxes = (isBrick && layer % 2 === 1) ? pattern.altBoxes : pattern.boxes;
+    const isOddLayer = layer % 2 === 1;
+
+    layerBoxes.forEach((box) => {
+      // 이 박스가 파렛트 경계를 벗어나는지 확인
+      const isOverhanging = overhang > 0 && (
+        box.x < 0 || box.y < 0 ||
+        box.x + box.w > palletL || box.y + box.h > palletW
+      );
+      const isHoriz = Math.abs(box.w - boxL) < 0.1;
+      let color, edgeColor;
+      if (isOverhanging) {
+        // 오버행 박스: 주황-보라 계열로 구분
+        color = isHoriz ? 0xfb923c : 0xc084fc;
+        edgeColor = isHoriz ? 0x9a3412 : 0x6b21a8;
+      } else if (isBrick) {
+        // 벽돌 패턴: 짝수 층은 약간 다른 톤으로 표시하여 교차 시각화
+        if (isOddLayer) {
+          color = isHoriz ? 0x93c5fd : 0xfca5a5;  // 밝은 톤 (짝수층)
+          edgeColor = isHoriz ? 0x1d4ed8 : 0x991b1b;
+        } else {
+          color = isHoriz ? 0x60a5fa : 0xf87171;  // 기본 톤 (홀수층)
+          edgeColor = isHoriz ? 0x1e3a8a : 0x7f1d1d;
+        }
+      } else {
+        color = isHoriz ? 0x60a5fa : 0xf87171;
+        edgeColor = isHoriz ? 0x1e3a8a : 0x7f1d1d;
+      }
+      const geo = new THREE.BoxGeometry(box.w * 0.98, boxH * 0.96, box.h * 0.98);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.x = box.x + box.w/2 - palletL/2;
+      mesh.position.z = box.y + box.h/2 - palletW/2;
+      mesh.position.y = palletH + layer * boxH + boxH/2;
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      g.add(mesh);
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({
+          color: edgeColor,
+          transparent: true, opacity: 0.65
+        })
+      );
+      mesh.add(edges);
+    });
+  }
+
+  // 카메라 조정 시 오버행 영역도 고려
+  const effectiveL = palletL + overhang * 2;
+  const effectiveW = palletW + overhang * 2;
+  const maxDim = Math.max(effectiveL, effectiveW, palletH + layers * boxH);
+  const centerY = (palletH + layers * boxH) / 2;
+  currentRender = {
+    type: 'tab2', maxDim, centerY,
+    visibleLayers,
+    redraw: () => render3DBoxesOnPallet(pattern, params)
+  };
+  targetY = centerY;
+  radius = maxDim * 2.2;
+  theta = Math.PI / 4; phi = Math.PI / 3.2;
+  updateCam();
+
+  // 범례 (패턴별, 오버행 포함 시 추가 표시)
+  const overhangLegend = overhang > 0 ? `
+    <div class="legend-item"><div class="legend-box" style="background:#fb923c;"></div>오버행 박스 (가로)</div>
+    <div class="legend-item"><div class="legend-box" style="background:#c084fc;"></div>오버행 박스 (회전)</div>
+    <div class="legend-item"><div class="legend-box" style="background:#ef4444;"></div>파렛트 경계선</div>
+  ` : '';
+  const brickLegend = isBrick ? `
+    <div class="legend-item"><div class="legend-box" style="background:#93c5fd;"></div>짝수층 가로 (교차)</div>
+    <div class="legend-item"><div class="legend-box" style="background:#fca5a5;"></div>짝수층 회전 (교차)</div>
+  ` : '';
+  document.getElementById('legend').innerHTML = `
+    <div class="legend-item"><div class="legend-box" style="background:#60a5fa;"></div>${isBrick ? '홀수층 ' : ''}가로 방향 박스</div>
+    <div class="legend-item"><div class="legend-box" style="background:#f87171;"></div>${isBrick ? '홀수층 ' : ''}회전 박스</div>
+    ${brickLegend}
+    <div class="legend-item"><div class="legend-box" style="background:#b88d5e;"></div>파렛트</div>
+    ${overhangLegend}
+  `;
+
+  const slider = document.getElementById('layerSlider');
+  slider.max = layers; slider.value = Math.min(slider.value, layers);
+  if (slider.value == 0) slider.value = layers;
+  document.getElementById('layerVal').textContent = slider.value;
+}
+
+// 파렛트 메쉬 추가 함수
+function buildPalletInto(parent, L, W, H) {
+  const wood = new THREE.MeshStandardMaterial({ color: 0xb88d5e, roughness: 0.85 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x8b6434, roughness: 0.85 });
+
+  const deckH = Math.max(20, H * 0.25);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(L, deckH, W), wood);
+  top.position.y = H - deckH/2;
+  top.castShadow = true; top.receiveShadow = true;
+  parent.add(top);
+
+  const blockH = H * 0.5;
+  const blockS = Math.min(L, W) * 0.1;
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(blockS, blockH, blockS), dark);
+      m.position.set(i * L * 0.42, H - deckH - blockH/2, j * W * 0.42);
+      m.castShadow = true; m.receiveShadow = true;
+      parent.add(m);
+    }
+  }
+  const botH = Math.max(15, H * 0.22);
+  for (let i = -1; i <= 1; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(L, botH, W * 0.13), wood);
+    m.position.set(0, botH/2, i * W * 0.42);
+    m.castShadow = true; m.receiveShadow = true;
+    parent.add(m);
+  }
+}
+
+// [TAB 3] 컨테이너 안에 파렛트 배치
+function render3DPalletsInContainer(result, params) {
+  initThree();
+  clearContent();
+  const g = new THREE.Group();
+  contentGroup.add(g);
+
+  const { contL, contW, contH, palletL, palletW, loadHeight, stacks } = params;
+
+  // 컨테이너 (반투명)
+  const contGeo = new THREE.BoxGeometry(contL, contH, contW);
+  const contMat = new THREE.MeshStandardMaterial({
+    color: 0xe5e7eb, transparent: true, opacity: 0.12, side: THREE.DoubleSide
+  });
+  const contMesh = new THREE.Mesh(contGeo, contMat);
+  contMesh.position.y = contH / 2;
+  g.add(contMesh);
+  const contEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(contGeo),
+    new THREE.LineBasicMaterial({ color: 0x374151, linewidth: 2 })
+  );
+  contEdges.position.y = contH / 2;
+  g.add(contEdges);
+
+  // 컨테이너 바닥 (어두운 색)
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(contL, 20, contW),
+    new THREE.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.9 })
+  );
+  floor.position.y = 10;
+  floor.receiveShadow = true;
+  g.add(floor);
+
+  // 파렛트 + 적재물 배치 (visibleLayers = 표시할 파렛트 개수)
+  const palletH = 150;
+  const totalPallets = result.boxes.length * stacks;
+  const visibleCount = (currentRender && currentRender.type === 'tab3' && currentRender.visibleLayers != null)
+    ? currentRender.visibleLayers : totalPallets;
+  let placed = 0;
+
+  outer: for (const p of result.boxes) {
+    for (let s = 0; s < stacks; s++) {
+      if (placed >= visibleCount) break outer;
+      const yBase = 20 + s * loadHeight;
+      const palGroup = new THREE.Group();
+      palGroup.position.set(
+        p.x + p.w/2 - contL/2,
+        yBase,
+        p.y + p.h/2 - contW/2
+      );
+
+      // 파렛트 (박스 방향에 맞춰)
+      const rotated = p.w !== palletL;
+      const pL = rotated ? palletW : palletL;
+      const pW = rotated ? palletL : palletW;
+      buildPalletInto(palGroup, pL, pW, palletH);
+
+      // 적재물 (한 덩어리로 표시)
+      const loadH = loadHeight - palletH;
+      if (loadH > 0) {
+        const loadColor = s === 0 ? 0x0ea5e9 : 0x8b5cf6;
+        const loadMat = new THREE.MeshStandardMaterial({
+          color: loadColor, roughness: 0.7
+        });
+        const loadGeo = new THREE.BoxGeometry(pL * 0.95, loadH, pW * 0.95);
+        const loadMesh = new THREE.Mesh(loadGeo, loadMat);
+        loadMesh.position.y = palletH + loadH/2;
+        loadMesh.castShadow = true; loadMesh.receiveShadow = true;
+        palGroup.add(loadMesh);
+        const edges = new THREE.LineSegments(
+          new THREE.EdgesGeometry(loadGeo),
+          new THREE.LineBasicMaterial({
+            color: s === 0 ? 0x075985 : 0x5b21b6,
+            transparent: true, opacity: 0.6
+          })
+        );
+        loadMesh.add(edges);
+      }
+      g.add(palGroup);
+      placed++;
+    }
+  }
+
+  const maxDim = Math.max(contL, contW, contH);
+  const centerY = contH / 2;
+  currentRender = {
+    type: 'tab3', maxDim, centerY,
+    visibleLayers: visibleCount,
+    redraw: () => render3DPalletsInContainer(result, params)
+  };
+  targetY = centerY;
+  radius = maxDim * 1.5;
+  theta = Math.PI / 5; phi = Math.PI / 3;
+  updateCam();
+
+  document.getElementById('legend').innerHTML = `
+    <div class="legend-item"><div class="legend-box" style="background:#0ea5e9;"></div>1단 적재물</div>
+    ${stacks > 1 ? '<div class="legend-item"><div class="legend-box" style="background:#8b5cf6;"></div>2단 적재물</div>' : ''}
+    <div class="legend-item"><div class="legend-box" style="background:#b88d5e;"></div>파렛트</div>
+    <div class="legend-item"><div class="legend-box" style="background:#374151; opacity:0.3;"></div>컨테이너</div>
+  `;
+
+  // 슬라이더: 파렛트 개수 제어
+  const slider = document.getElementById('layerSlider');
+  slider.max = totalPallets;
+  slider.value = visibleCount;
+  document.getElementById('layerVal').textContent = visibleCount;
+}
+
+// ========================================
+// 프리셋 선택
+// ========================================
+function setPalletPreset(key) {
+  const p = PALLETS[key];
+  document.getElementById('t2-palletL').value = p.L;
+  document.getElementById('t2-palletW').value = p.W;
+  document.getElementById('t2-palletH').value = p.H;
+  document.querySelectorAll('[data-pallet]').forEach(el =>
+    el.classList.toggle('active', el.dataset.pallet === key));
+}
+function setContainerPreset(key) {
+  const c = CONTAINERS[key];
+  document.getElementById('t3-contL').value = c.L;
+  document.getElementById('t3-contW').value = c.W;
+  document.getElementById('t3-contH').value = c.H;
+  document.getElementById('t3-contMaxWeight').value = c.maxWeight;
+  document.querySelectorAll('[data-container]').forEach(el =>
+    el.classList.toggle('active', el.dataset.container === key));
+}
+function setT4Pallet(key) {
+  const p = PALLETS[key];
+  document.getElementById('t4-palletL').value = p.L;
+  document.getElementById('t4-palletW').value = p.W;
+  document.querySelectorAll('[data-t4-pallet]').forEach(el =>
+    el.classList.toggle('active', el.dataset.t4Pallet === key));
+}
+let t4ContainerKey = '20GP';
+function setT4Container(key) {
+  t4ContainerKey = key;
+  document.querySelectorAll('[data-t4-cont]').forEach(el =>
+    el.classList.toggle('active', el.dataset.t4Cont === key));
+}
+
+// ========================================
+// 탭 전환
+// ========================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const targetId = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(targetId).classList.add('active');
+  });
+});
+
+// ========================================
+// 계산 함수들
+// ========================================
+
+// TAB 1: 단품 → 아웃박스
+
+// 모드 관리
+let t1Mode = 'calc';  // 'calc' 또는 'recommend'
+let t1Recommendations = [];
+
+function setT1Mode(mode) {
+  t1Mode = mode;
+  document.querySelectorAll('#tab1 .mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+  document.getElementById('t1-mode-calc').style.display = mode === 'calc' ? 'block' : 'none';
+  document.getElementById('t1-mode-recommend').style.display = mode === 'recommend' ? 'block' : 'none';
+  document.getElementById('t1-mode-bulk').style.display = mode === 'bulk' ? 'block' : 'none';
+  document.getElementById('t1-summary').style.display = 'none';
+  document.getElementById('t1-recommendations').style.display = 'none';
+  document.getElementById('t1-bulk-results').style.display = 'none';
+  document.getElementById('t1-error').innerHTML = '';
+
+  // bulk 모드에서는 상단 단품 크기/중량 입력 불필요 (엑셀 파일에서 각 행별로 가져옴)
+  const itemSizeGroup = document.getElementById('t1-item-size-group');
+  const itemWeightGroup = document.getElementById('t1-item-weight-group');
+  if (itemSizeGroup) itemSizeGroup.style.display = mode === 'bulk' ? 'none' : 'block';
+  if (itemWeightGroup) itemWeightGroup.style.display = mode === 'bulk' ? 'none' : 'block';
+
+  // 계산 버튼은 bulk 모드에서는 별도 "일괄 추천 실행" 기능 수행
+  const btn = document.getElementById('t1-button');
+  if (mode === 'calc') {
+    document.getElementById('t1-title').textContent = '단품 → 아웃박스 입수량 계산';
+    document.getElementById('t1-result-title').textContent = '아웃박스 적재 시뮬레이션';
+    btn.textContent = '계산 및 3D 렌더링';
+    btn.style.display = 'block';
+  } else if (mode === 'recommend') {
+    document.getElementById('t1-title').textContent = '🎯 아웃박스 규격 추천';
+    document.getElementById('t1-result-title').textContent = '추천 박스 규격 (체적 최소 순)';
+    btn.textContent = '박스 규격 추천';
+    btn.style.display = 'block';
+  } else {
+    document.getElementById('t1-title').textContent = '📋 엑셀 일괄 업로드 — 아웃박스 규격 추천';
+    document.getElementById('t1-result-title').textContent = '일괄 추천 결과';
+    btn.textContent = '📋 일괄 추천 실행';
+    btn.style.display = 'block';
+  }
+}
+
+// 통합 실행 버튼 (모드에 따라 분기)
+function runT1() {
+  if (t1Mode === 'calc') calculateTab1();
+  else if (t1Mode === 'recommend') recommendCartonBox();
+  else runBulkRecommendation();
+}
+
+// N을 세 정수의 곱으로 분해 (a ≤ b ≤ c 조합만)
+function findFactorizations(N) {
+  const results = [];
+  for (let a = 1; a * a * a <= N; a++) {
+    if (N % a !== 0) continue;
+    const rem = N / a;
+    for (let b = a; b * b <= rem; b++) {
+      if (rem % b !== 0) continue;
+      const c = rem / b;
+      results.push([a, b, c]);
+    }
+  }
+  return results;
+}
+
+// 입수량에 맞는 최적 아웃박스 규격 추천
+// sortBy: 'layers' (단수 최소) | 'volume' (체적 최소) | 'cube' (균형)
+function suggestCartonBoxes(item, N, padding, maxAspect, sortBy = 'balanced', productType = 'normal') {
+  const { l, w, h } = item;
+  const factorizations = findFactorizations(N);
+  const candidatesByKey = new Map();  // 박스 모양별 최선 대표 유지
+
+  const permsOf = ([a, b, c]) => {
+    const set = new Set();
+    [[a,b,c],[a,c,b],[b,a,c],[b,c,a],[c,a,b],[c,b,a]]
+      .forEach(p => set.add(p.join(',')));
+    return [...set].map(s => s.split(',').map(Number));
+  };
+
+  for (const factor of factorizations) {
+    const perms = permsOf(factor);
+    for (const [nx, ny, nz] of perms) {
+      // 단품 6방향 회전
+      const orients = [
+        [l, w, h], [l, h, w], [w, l, h],
+        [w, h, l], [h, l, w], [h, w, l]
+      ];
+      for (const [il, iw, ih] of orients) {
+        const boxL = nx * il + padding * 2;
+        const boxW = ny * iw + padding * 2;
+        const boxH = nz * ih + padding * 2;
+
+        // 박스 치수 정렬로 동일 모양 판별
+        const sortedDims = [boxL, boxW, boxH].slice().sort((a, b) => a - b);
+        const key = sortedDims.join('-');
+        const aspectRatio = sortedDims[2] / sortedDims[0];
+        if (aspectRatio > maxAspect) continue;
+
+        const candidate = {
+          nx, ny, nz,
+          itemL: il, itemW: iw, itemH: ih,
+          boxL, boxW, boxH,
+          volume: boxL * boxW * boxH,
+          aspectRatio,
+          arrangement: `${nx}×${ny}×${nz}`,
+          layers: nz  // 단수 = 수직 적재 층수
+        };
+
+        // 같은 박스 모양일 때: nz가 가장 작은 대표를 유지 (최소 단수 배치 선택)
+        const existing = candidatesByKey.get(key);
+        if (!existing) {
+          candidatesByKey.set(key, candidate);
+        } else if (candidate.nz < existing.nz) {
+          // 더 낮은 단수로 배치 가능하면 교체
+          candidatesByKey.set(key, candidate);
+        }
+      }
+    }
+  }
+
+  const candidates = Array.from(candidatesByKey.values());
+
+  // 정렬 기준별 분기
+  if (sortBy === 'balanced') {
+    // ✨ 균형 점수: 제품 특성별 가중치 적용
+    const w = PRODUCT_WEIGHTS[productType] || PRODUCT_WEIGHTS.normal;
+    if (candidates.length > 1) {
+      const vols = candidates.map(c => c.volume);
+      const asps = candidates.map(c => c.aspectRatio);
+      const lyrs = candidates.map(c => c.layers);
+      const minV = Math.min(...vols), maxV = Math.max(...vols);
+      const minA = Math.min(...asps), maxA = Math.max(...asps);
+      const minL = Math.min(...lyrs), maxL = Math.max(...lyrs);
+      const norm = (v, min, max) => max > min ? (v - min) / (max - min) : 0;
+
+      candidates.forEach(c => {
+        c.balancedScore =
+          w.aspect * norm(c.aspectRatio, minA, maxA) +
+          w.volume * norm(c.volume, minV, maxV) +
+          w.layers * norm(c.layers, minL, maxL);
+      });
+    } else {
+      candidates.forEach(c => c.balancedScore = 0);
+    }
+    candidates.sort((a, b) => a.balancedScore - b.balancedScore);
+  } else if (sortBy === 'layers') {
+    // 단수 최소 → 체적 최소 순
+    candidates.sort((a, b) => a.layers - b.layers || a.volume - b.volume);
+  } else if (sortBy === 'cube') {
+    // 종횡비 1:1에 가까운 순 → 체적 최소
+    candidates.sort((a, b) => a.aspectRatio - b.aspectRatio || a.volume - b.volume);
+  } else {
+    // 체적 최소
+    candidates.sort((a, b) => a.volume - b.volume);
+  }
+  return candidates.slice(0, 6);
+}
+
+// 추천 실행
+function recommendCartonBox() {
+  const item = {
+    l: parseFloat(document.getElementById('t1-itemL').value),
+    w: parseFloat(document.getElementById('t1-itemW').value),
+    h: parseFloat(document.getElementById('t1-itemH').value)
+  };
+  const itemWeight = parseFloat(document.getElementById('t1-itemWeight').value) || 0;
+  const N = parseInt(document.getElementById('t1-targetQty').value);
+  const padding = parseFloat(document.getElementById('t1-padding').value) || 0;
+  const maxAspect = parseFloat(document.getElementById('t1-maxAspect').value);
+  const sortBy = document.getElementById('t1-sortBy').value;
+  const productType = document.getElementById('t1-productTypeB').value;
+
+  const errBox = document.getElementById('t1-error');
+  errBox.innerHTML = '';
+  document.getElementById('t1-summary').style.display = 'none';
+
+  if (!item.l || !item.w || !item.h || !N || N < 1) {
+    errBox.innerHTML = '<div class="alert error">단품 크기와 목표 입수량을 올바르게 입력해주세요.</div>';
+    return;
+  }
+  if (N > 2000) {
+    errBox.innerHTML = '<div class="alert error">입수량이 너무 많습니다. 2,000개 이하로 입력해주세요.</div>';
+    return;
+  }
+
+  // 홀수 입수량 힌트 표시
+  const hintEl = document.getElementById('t1-evenHint');
+  if (hintEl) hintEl.style.display = (N % 2 === 1) ? 'block' : 'none';
+
+  // 1차: 사용자 선택 종횡비로 검색
+  let recs = suggestCartonBoxes(item, N, padding, maxAspect, sortBy, productType);
+  let warning = null;
+
+  if (recs.length === 0) {
+    const allRecs = suggestCartonBoxes(item, N, padding, 999, sortBy, productType);
+    if (allRecs.length === 0) {
+      errBox.innerHTML = `<div class="alert error">
+        ${N}개 배치가 아예 불가능합니다. 입수량을 소수가 아닌 값으로 조정해보세요.<br>
+        <span style="font-size:11px;">예: 77(=7×11, 제약 많음) → 72(=8×9) 또는 80(=8×10)</span>
+      </div>`;
+      return;
+    }
+    recs = allRecs;
+    const minAspect = Math.min(...allRecs.map(r => r.aspectRatio));
+    warning = { userMax: maxAspect, minNeeded: minAspect, N };
+  }
+
+  t1Recommendations = recs;
+  renderRecommendations(item, itemWeight, N, warning, sortBy, productType);
+  selectRecommendation(0);
+}
+
+// ========================================
+// 📋 엑셀 일괄 업로드 기능
+// ========================================
+let t1BulkItems = [];      // 업로드된 품목 리스트 [{code, name, l, w, h, weight, qty}, ...]
+let t1BulkResults = [];    // 추천 결과 리스트
+
+// 엑셀 템플릿 다운로드
+function downloadExcelTemplate() {
+  if (typeof XLSX === 'undefined') {
+    alert('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+  // 헤더 + 예시 3행
+  const data = [
+    ['품목코드', '품목명', '가로(mm)', '세로(mm)', '높이(mm)', '중량(g)', '입수량'],
+    ['A001',   '화장품 A',  42, 42, 150, 157, 30],
+    ['A002',   '음료 B',   50, 50, 200, 180, 60],
+    ['A003',   '식품 C',   80, 60,  40,  95, 48]
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  // 컬럼 너비 조정
+  ws['!cols'] = [
+    {wch: 12}, {wch: 18}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 10}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '품목목록');
+
+  // 가이드 시트 추가
+  const guide = [
+    ['[엑셀 업로드 양식 안내]'],
+    [''],
+    ['필수 컬럼 (순서 중요)'],
+    ['• 품목코드 (선택, 비워도 됨)'],
+    ['• 품목명 (선택, 비워도 됨)'],
+    ['• 가로(mm) — 단품의 가로 치수'],
+    ['• 세로(mm) — 단품의 세로 치수'],
+    ['• 높이(mm) — 단품의 높이 치수'],
+    ['• 중량(g) — 단품 1개의 중량'],
+    ['• 입수량 — 1박스(카톤)당 담을 단품 개수'],
+    [''],
+    ['주의사항'],
+    ['• 첫 행은 헤더이므로 그대로 유지해주세요.'],
+    ['• 품목코드·품목명 중 하나라도 있으면 됩니다.'],
+    ['• 수치 컬럼(가로/세로/높이/중량/입수량)은 숫자로 입력.'],
+    ['• 입수량은 2000개를 초과할 수 없습니다.'],
+    [''],
+    ['예시'],
+    ['42×42×150mm, 157g, 입수량 30개 → 추천 박스 규격 자동 계산']
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(guide);
+  ws2['!cols'] = [{wch: 60}];
+  XLSX.utils.book_append_sheet(wb, ws2, '사용안내');
+
+  XLSX.writeFile(wb, '아웃박스_추천_템플릿.xlsx');
+}
+
+// 엑셀 파일 업로드 핸들러
+function handleExcelUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  processExcelFile(file);
+}
+
+// 엑셀 파일 파싱 & 검증
+function processExcelFile(file) {
+  if (typeof XLSX === 'undefined') {
+    showBulkError('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, defval: '' });
+      parseUploadedRows(rows, file.name);
+    } catch (err) {
+      showBulkError('파일을 읽을 수 없습니다: ' + err.message);
+    }
+  };
+  reader.onerror = () => showBulkError('파일 읽기 오류가 발생했습니다.');
+  reader.readAsArrayBuffer(file);
+}
+
+// 업로드된 행 파싱
+function parseUploadedRows(rows, fileName) {
+  if (!rows || rows.length < 2) {
+    showBulkError('파일에 데이터가 없습니다. 헤더 행 아래에 품목을 입력해주세요.');
+    return;
+  }
+
+  // 헤더 인덱스 찾기 (유연 매칭)
+  const header = rows[0].map(h => String(h || '').trim().toLowerCase());
+  const findCol = (keywords) => {
+    for (let i = 0; i < header.length; i++) {
+      const h = header[i];
+      if (keywords.some(k => h.includes(k))) return i;
+    }
+    return -1;
+  };
+  const idx = {
+    code:   findCol(['품목코드', '코드', 'code', 'sku']),
+    name:   findCol(['품목명', '제품명', '상품명', 'name', 'item']),
+    l:      findCol(['가로', 'length', 'l(']),
+    w:      findCol(['세로', 'width', 'w(']),
+    h:      findCol(['높이', 'height', 'h(']),
+    weight: findCol(['중량', '무게', 'weight']),
+    qty:    findCol(['입수량', '입수', 'qty', 'quantity'])
+  };
+
+  // 필수 컬럼 체크
+  const missing = [];
+  if (idx.l < 0) missing.push('가로');
+  if (idx.w < 0) missing.push('세로');
+  if (idx.h < 0) missing.push('높이');
+  if (idx.weight < 0) missing.push('중량');
+  if (idx.qty < 0) missing.push('입수량');
+  if (missing.length) {
+    showBulkError('필수 컬럼을 찾을 수 없습니다: <strong>' + missing.join(', ') + '</strong><br>템플릿을 다운로드해서 양식을 확인해주세요.');
+    return;
+  }
+
+  const items = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    // 빈 행 skip
+    if (!row || row.every(c => c === '' || c == null)) continue;
+    const l = parseFloat(row[idx.l]);
+    const w = parseFloat(row[idx.w]);
+    const h = parseFloat(row[idx.h]);
+    const weight = parseFloat(row[idx.weight]);
+    const qty = parseInt(row[idx.qty]);
+    const code = idx.code >= 0 ? String(row[idx.code] || '').trim() : '';
+    const name = idx.name >= 0 ? String(row[idx.name] || '').trim() : '';
+
+    items.push({
+      rowNum: i + 1,
+      code, name,
+      l: isFinite(l) ? l : NaN,
+      w: isFinite(w) ? w : NaN,
+      h: isFinite(h) ? h : NaN,
+      weight: isFinite(weight) ? weight : 0,
+      qty: isFinite(qty) ? qty : NaN
+    });
+  }
+
+  if (items.length === 0) {
+    showBulkError('유효한 품목이 없습니다. 데이터 행을 확인해주세요.');
+    return;
+  }
+
+  t1BulkItems = items;
+  renderItemsPreview(items, fileName);
+  document.getElementById('t1-error').innerHTML = '';
+  // 업로드 완료 UI 업데이트
+  const zone = document.getElementById('t1-upload-zone');
+  zone.classList.add('has-file');
+  document.getElementById('t1-upload-text').textContent = '✅ ' + fileName;
+  document.getElementById('t1-upload-sub').textContent = items.length + '개 품목 로드 완료 · 다시 클릭하여 변경';
+}
+
+function showBulkError(msg) {
+  document.getElementById('t1-error').innerHTML =
+    '<div class="alert error">' + msg + '</div>';
+}
+
+// 업로드된 품목 미리보기 렌더링
+function renderItemsPreview(items, fileName) {
+  const previewEl = document.getElementById('t1-items-preview');
+  const countEl = document.getElementById('t1-items-count');
+  const listEl = document.getElementById('t1-items-list');
+
+  countEl.textContent = items.length + '개';
+
+  const maxPreview = 50;
+  const shown = items.slice(0, maxPreview);
+  let html = shown.map((it, i) => {
+    const label = it.name || it.code || ('품목 ' + (i + 1));
+    const dimsOk = isFinite(it.l) && isFinite(it.w) && isFinite(it.h);
+    const qtyOk = isFinite(it.qty) && it.qty > 0;
+    const valid = dimsOk && qtyOk;
+    return `<li>
+      <span class="items-preview-name">${valid ? '' : '⚠️ '}${escapeHtml(label)}</span>
+      <span class="items-preview-dims">${dimsOk ? it.l+'×'+it.w+'×'+it.h : '치수오류'} / ${it.weight||0}g / ${qtyOk ? it.qty+'개' : '입수량오류'}</span>
+    </li>`;
+  }).join('');
+  if (items.length > maxPreview) {
+    html += `<li style="justify-content:center; color:#94a3b8;">…외 ${items.length - maxPreview}개 품목</li>`;
+  }
+  listEl.innerHTML = html;
+  previewEl.style.display = 'block';
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+// 일괄 추천 실행
+function runBulkRecommendation() {
+  if (!t1BulkItems || t1BulkItems.length === 0) {
+    showBulkError('먼저 엑셀 파일을 업로드해주세요.');
+    return;
+  }
+
+  const padding   = parseFloat(document.getElementById('t1-bulk-padding').value) || 0;
+  const maxAspect = parseFloat(document.getElementById('t1-bulk-maxAspect').value);
+  const sortBy    = document.getElementById('t1-bulk-sortBy').value;
+  const prodType  = document.getElementById('t1-bulk-productType').value;
+
+  const results = [];
+  for (const it of t1BulkItems) {
+    // 검증
+    if (!isFinite(it.l) || !isFinite(it.w) || !isFinite(it.h) || it.l <= 0 || it.w <= 0 || it.h <= 0) {
+      results.push({ item: it, ok: false, error: '단품 치수가 올바르지 않습니다.' });
+      continue;
+    }
+    if (!isFinite(it.qty) || it.qty < 1) {
+      results.push({ item: it, ok: false, error: '입수량이 올바르지 않습니다.' });
+      continue;
+    }
+    if (it.qty > 2000) {
+      results.push({ item: it, ok: false, error: '입수량 2,000개 초과는 지원하지 않습니다.' });
+      continue;
+    }
+
+    // 추천 실행
+    const itemObj = { l: it.l, w: it.w, h: it.h };
+    let recs = suggestCartonBoxes(itemObj, it.qty, padding, maxAspect, sortBy, prodType);
+    let relaxed = false;
+
+    if (!recs || recs.length === 0) {
+      // 종횡비 제한 풀어서 재시도
+      recs = suggestCartonBoxes(itemObj, it.qty, padding, 999, sortBy, prodType);
+      relaxed = true;
+    }
+
+    if (!recs || recs.length === 0) {
+      results.push({
+        item: it, ok: false,
+        error: `${it.qty}개 배치가 불가능합니다 (소수일 가능성). 근처 짝수 값으로 조정해보세요.`
+      });
+    } else {
+      results.push({
+        item: it, ok: true,
+        best: recs[0],
+        alternatives: recs.slice(1, 3),
+        relaxed
+      });
+    }
+  }
+
+  t1BulkResults = results;
+  renderBulkResults(results);
+}
+
+// 일괄 결과 렌더링
+function renderBulkResults(results) {
+  // 다른 결과 숨기고 bulk 결과 표시
+  document.getElementById('t1-summary').style.display = 'none';
+  document.getElementById('t1-space-info').style.display = 'none';
+  document.getElementById('t1-recommendations').style.display = 'none';
+  document.getElementById('t1-bulk-results').style.display = 'block';
+
+  const ok = results.filter(r => r.ok).length;
+  const fail = results.length - ok;
+  document.getElementById('t1-bulk-total').textContent = results.length;
+  document.getElementById('t1-bulk-success').textContent = ok;
+  document.getElementById('t1-bulk-failed').textContent = fail;
+
+  const listEl = document.getElementById('t1-bulk-list');
+  const html = results.map((r, idx) => {
+    const it = r.item;
+    const label = it.name || it.code || `품목 ${idx + 1}`;
+    const codeBadge = it.code ? `<span class="bulk-item-code">${escapeHtml(it.code)}</span>` : '';
+    const specs = `단품 <strong>${it.l}×${it.w}×${it.h}mm</strong> · ${it.weight || 0}g · 입수량 <strong>${it.qty}개</strong>`;
+
+    if (!r.ok) {
+      return `<div class="bulk-item-card error-card" data-idx="${idx}">
+        <div class="bulk-item-header">
+          <div class="bulk-item-title">
+            <span class="bulk-item-index" style="background:#ef4444;">${idx + 1}</span>
+            ${escapeHtml(label)}
+          </div>
+          ${codeBadge}
+        </div>
+        <div class="bulk-item-specs">${specs}</div>
+        <div class="bulk-item-error">⚠️ ${escapeHtml(r.error)}</div>
+      </div>`;
+    }
+
+    const b = r.best;
+    const totalItemVol = it.qty * it.l * it.w * it.h;
+    const eff = (totalItemVol / b.volume) * 100;
+    const boxWeight = it.qty * (it.weight || 0) / 1000;
+    const altsHtml = (r.alternatives && r.alternatives.length)
+      ? `<div class="bulk-item-alternatives">
+          <strong>대안 규격:</strong>
+          ${r.alternatives.map(a =>
+            `${a.boxL.toFixed(0)}×${a.boxW.toFixed(0)}×${a.boxH.toFixed(0)}mm (${a.arrangement}, ${a.layers}단)`
+          ).join(' &nbsp;·&nbsp; ')}
+        </div>`
+      : '';
+    const relaxedNote = r.relaxed
+      ? `<div style="font-size:11px; color:#d97706; margin-top:6px;">ℹ️ 선택한 종횡비 제한 내에서는 불가하여 제한 없이 추천합니다.</div>`
+      : '';
+
+    return `<div class="bulk-item-card" onclick="selectBulkItem(${idx})" data-idx="${idx}">
+      <div class="bulk-item-header">
+        <div class="bulk-item-title">
+          <span class="bulk-item-index">${idx + 1}</span>
+          ${escapeHtml(label)}
+        </div>
+        ${codeBadge}
+      </div>
+      <div class="bulk-item-specs">${specs}</div>
+      <div class="bulk-item-rec">
+        <div class="bulk-item-rec-label">✨ 추천 아웃박스 규격</div>
+        <div class="bulk-item-rec-dims">
+          ${b.boxL.toFixed(0)} × ${b.boxW.toFixed(0)} × ${b.boxH.toFixed(0)}<span class="unit">mm</span>
+        </div>
+        <div class="bulk-item-rec-meta">
+          <span>배치 <strong>${b.arrangement}</strong></span>
+          <span>단수 <strong>${b.layers}단</strong></span>
+          <span>체적효율 <strong>${eff.toFixed(1)}%</strong></span>
+          <span>박스중량 <strong>${boxWeight.toFixed(2)}kg</strong></span>
+        </div>
+        ${altsHtml}
+        ${relaxedNote}
+      </div>
+    </div>`;
+  }).join('');
+
+  listEl.innerHTML = html || '<div class="alert error">결과가 없습니다.</div>';
+
+  // 첫 번째 성공 품목을 자동으로 3D 뷰에 표시
+  const firstOkIdx = results.findIndex(r => r.ok);
+  if (firstOkIdx >= 0) {
+    selectBulkItem(firstOkIdx);
+  }
+}
+
+// 일괄 결과 중 특정 품목을 3D 뷰에 렌더링
+function selectBulkItem(idx) {
+  const r = t1BulkResults[idx];
+  if (!r || !r.ok) return;
+
+  // 카드 선택 상태 업데이트
+  document.querySelectorAll('#t1-bulk-list .bulk-item-card').forEach((c) => {
+    const cardIdx = parseInt(c.dataset.idx);
+    c.classList.toggle('selected', cardIdx === idx);
+  });
+
+  const it = r.item;
+  const b = r.best;
+  const item = { l: it.l, w: it.w, h: it.h };
+  const box = { L: b.boxL, W: b.boxW, H: b.boxH };
+  const pack = {
+    count: b.nx * b.ny * b.nz,
+    nL: b.nx, nW: b.ny, nH: b.nz,
+    l: b.itemL, w: b.itemW, h: b.itemH,
+    label: 'REC'
+  };
+
+  // 3D 뷰 초기화 후 렌더링
+  currentRender = null;
+  render3DProductInBox(item, box, pack);
+
+  // 박스 내부 남은 공간 (선택된 품목 이름 함께 표시)
+  const usedL = pack.nL * pack.l;
+  const usedW = pack.nW * pack.w;
+  const usedH = pack.nH * pack.h;
+  const label = it.name || it.code || `품목 ${idx + 1}`;
+  const ctxText =
+    `📦 <strong>${escapeHtml(label)}</strong> · 박스 <strong>${box.L}×${box.W}×${box.H}</strong>mm · 내용물 배치 <strong>${usedL}×${usedW}×${usedH}</strong>mm`;
+  updateSpaceInfo('t1',
+    box.L - usedL,
+    box.W - usedW,
+    box.H - usedH,
+    ctxText
+  );
+
+  // 게이지 업데이트
+  const itemWeight = it.weight || 0;
+  const v_item = item.l * item.w * item.h;
+  const v_box = box.L * box.W * box.H;
+  const eff = (pack.count * v_item / v_box) * 100;
+  const boxWeight = pack.count * itemWeight / 1000;
+
+  setGaugeData({
+    maxLayers: pack.nH,
+    sliderLabel: '표시 단수',
+    label1: '단품 적재 단수',
+    label2: '체적 효율',
+    label3: '박스 내 단품 중량',
+    efficiency: eff,
+    totalWeight: boxWeight,
+    maxWeight: 0,
+    unit2: '%',
+    unit3: ' kg'
+  });
+}
+
+// 일괄 결과 엑셀 다운로드
+function downloadBulkResults() {
+  if (!t1BulkResults || t1BulkResults.length === 0) {
+    alert('다운로드할 결과가 없습니다.');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    alert('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  const rows = [[
+    '번호', '품목코드', '품목명',
+    '단품 가로(mm)', '단품 세로(mm)', '단품 높이(mm)',
+    '단품 중량(g)', '입수량',
+    '추천 박스 가로(mm)', '추천 박스 세로(mm)', '추천 박스 높이(mm)',
+    '배치(가로×세로×단)', '단수', '체적효율(%)',
+    '박스 중량(kg)', '박스 체적(m³)',
+    '대안1', '대안2',
+    '상태', '비고'
+  ]];
+
+  t1BulkResults.forEach((r, idx) => {
+    const it = r.item;
+    if (!r.ok) {
+      rows.push([
+        idx + 1, it.code || '', it.name || '',
+        it.l || '', it.w || '', it.h || '', it.weight || '', it.qty || '',
+        '', '', '', '', '', '', '', '',
+        '', '',
+        '오류', r.error
+      ]);
+    } else {
+      const b = r.best;
+      const totalItemVol = it.qty * it.l * it.w * it.h;
+      const eff = (totalItemVol / b.volume) * 100;
+      const boxWeight = it.qty * (it.weight || 0) / 1000;
+      const boxVolM3 = b.volume / 1e9;
+      const alt1 = r.alternatives[0] ? `${r.alternatives[0].boxL.toFixed(0)}×${r.alternatives[0].boxW.toFixed(0)}×${r.alternatives[0].boxH.toFixed(0)} (${r.alternatives[0].arrangement})` : '';
+      const alt2 = r.alternatives[1] ? `${r.alternatives[1].boxL.toFixed(0)}×${r.alternatives[1].boxW.toFixed(0)}×${r.alternatives[1].boxH.toFixed(0)} (${r.alternatives[1].arrangement})` : '';
+      rows.push([
+        idx + 1, it.code || '', it.name || '',
+        it.l, it.w, it.h, it.weight || 0, it.qty,
+        Math.round(b.boxL), Math.round(b.boxW), Math.round(b.boxH),
+        b.arrangement, b.layers, Number(eff.toFixed(1)),
+        Number(boxWeight.toFixed(2)), Number(boxVolM3.toFixed(5)),
+        alt1, alt2,
+        '성공', r.relaxed ? '종횡비 제한 완화 적용' : ''
+      ]);
+    }
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  // 컬럼 너비
+  ws['!cols'] = [
+    {wch:5}, {wch:12}, {wch:18},
+    {wch:10}, {wch:10}, {wch:10}, {wch:10}, {wch:8},
+    {wch:14}, {wch:14}, {wch:14},
+    {wch:14}, {wch:6}, {wch:10},
+    {wch:10}, {wch:10},
+    {wch:22}, {wch:22},
+    {wch:8}, {wch:30}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '추천결과');
+
+  // 파일명에 오늘 날짜
+  const d = new Date();
+  const ymd = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  XLSX.writeFile(wb, `아웃박스_추천결과_${ymd}.xlsx`);
+}
+
+// 드래그&드롭 초기화 (DOMContentLoaded 때 한 번)
+function initExcelDragDrop() {
+  const zone = document.getElementById('t1-upload-zone');
+  if (!zone) return;
+  ['dragenter', 'dragover'].forEach(ev => {
+    zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(ev => {
+    zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.classList.remove('dragover');
+    });
+  });
+  zone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files[0]) {
+      processExcelFile(files[0]);
+    }
+  });
+}
+
+// 추천 카드 리스트 렌더링
+function renderRecommendations(item, itemWeight, N, warning = null, sortBy = 'balanced', productType = 'normal') {
+  document.getElementById('t1-recommendations').style.display = 'block';
+  const introEl = document.getElementById('t1-rec-intro');
+  const listEl = document.getElementById('t1-rec-list');
+
+  // 인트로 메시지 (경고 여부에 따라 다름)
+  const sortLabels = {
+    balanced: '✨ 균형 점수 (종합 추천)',
+    layers: '📉 단수 최소 (낮은 층 우선)',
+    volume: '📦 체적 최소 (박스 크기 우선)',
+    cube: '⬜ 정사각형 형태 (균형 우선)'
+  };
+  const productLabels = {
+    normal: '', heavy: ' · 🔨 무거운 제품',
+    fragile: ' · 🍷 약한 제품', light: ' · 🪶 가벼운 제품',
+    durable: ' · 🧱 단단한 제품'
+  };
+  const productSuffix = productLabels[productType] || '';
+  if (warning) {
+    introEl.classList.add('warning');
+    introEl.innerHTML = `
+      ⚠️ 종횡비 <strong>${warning.userMax}:1</strong> 제한으로는 ${warning.N}개 배치가 불가능합니다.<br>
+      이 입수량에 필요한 <strong>최소 종횡비: ${warning.minNeeded.toFixed(2)}:1</strong><br>
+      <span style="font-size:11px;">→ 아래는 종횡비 제한 없이 <strong>${sortLabels[sortBy]}${productSuffix}</strong> 순 추천입니다. 필터를 ${Math.ceil(warning.minNeeded)}:1 이상으로 설정하시면 정상 반영됩니다.</span>
+    `;
+  } else {
+    introEl.classList.remove('warning');
+    introEl.innerHTML = `📦 <strong>${sortLabels[sortBy]}${productSuffix}</strong> 기준 상위 6개 추천입니다. 카드를 클릭하면 3D로 미리볼 수 있습니다.`;
+  }
+
+  const itemVol = item.l * item.w * item.h;
+  const totalItemVol = N * itemVol;
+  const boxWeight = N * itemWeight / 1000;  // kg
+
+  const html = t1Recommendations.map((r, i) => {
+    const volumeM3 = r.volume / 1e9;
+    const eff = (totalItemVol / r.volume) * 100;
+    const aspectPct = Math.min(100, (1 / r.aspectRatio) * 100);
+    const isBest = i === 0;
+    const aspectExceed = warning && r.aspectRatio > warning.userMax;
+    // 단수별 뱃지 색상
+    const layers = r.layers;
+    const layersBadgeClass = layers === 1 ? 'layers-1' : layers === 2 ? 'layers-2' : layers <= 4 ? 'layers-3' : 'layers-many';
+    return `
+      <div class="rec-card ${isBest ? 'selected' : ''}" onclick="selectRecommendation(${i})">
+        <div class="rec-card-header">
+          <div class="rec-card-rank ${isBest ? 'best' : ''}">${i + 1}</div>
+          <div class="rec-card-title">추천 ${i + 1}순위</div>
+          <div class="layers-badge ${layersBadgeClass}">${layers}단</div>
+          ${isBest ? '<div class="rec-card-badge">✓ 최적</div>' : ''}
+        </div>
+        <div class="rec-dims">${r.boxL.toFixed(0)} × ${r.boxW.toFixed(0)} × ${r.boxH.toFixed(0)}<span class="rec-dims-unit">mm</span></div>
+        <div class="rec-arrangement">배치 <strong>${r.arrangement}</strong> (${r.nx}열 × ${r.ny}행 × <strong style="color:#059669;">${r.nz}단</strong>) = ${N}개</div>
+        <div class="rec-meta">
+          <div class="rec-meta-item">
+            <div class="rec-meta-label">체적</div>
+            <div class="rec-meta-value">${volumeM3.toFixed(4)}<span style="font-size:10px;"> m³</span></div>
+          </div>
+          <div class="rec-meta-item">
+            <div class="rec-meta-label">효율</div>
+            <div class="rec-meta-value">${eff.toFixed(1)}%</div>
+          </div>
+          <div class="rec-meta-item">
+            <div class="rec-meta-label">중량</div>
+            <div class="rec-meta-value">${boxWeight.toFixed(2)}<span style="font-size:10px;"> kg</span></div>
+          </div>
+          <div class="rec-meta-item">
+            <div class="rec-meta-label">종횡비</div>
+            <div class="rec-meta-value" ${aspectExceed ? 'style="color:#dc2626;"' : ''}>${r.aspectRatio.toFixed(2)}:1${aspectExceed ? ' ⚠️' : ''}</div>
+          </div>
+        </div>
+        <div class="rec-aspect-indicator" title="박스 형태 균형도">
+          <div class="rec-aspect-fill" style="width:${aspectPct}%"></div>
+        </div>
+        ${sortBy === 'balanced' && r.balancedScore != null ? `
+        <div class="rec-score-bar" title="균형 점수 (낮을수록 좋음, 0이 최적)">
+          <span class="rec-score-bar-label">✨ 균형점수</span>
+          <div class="rec-score-bar-track">
+            <div class="rec-score-bar-fill" style="width:${(1 - r.balancedScore) * 100}%"></div>
+          </div>
+          <span class="rec-score-value">${(1 - r.balancedScore).toFixed(2)}</span>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  listEl.innerHTML = html;
+}
+
+// 추천 박스 선택 (카드 클릭시)
+function selectRecommendation(idx) {
+  const r = t1Recommendations[idx];
+  if (!r) return;
+
+  document.querySelectorAll('#t1-rec-list .rec-card').forEach((c, i) => {
+    c.classList.toggle('selected', i === idx);
+  });
+
+  const item = {
+    l: parseFloat(document.getElementById('t1-itemL').value),
+    w: parseFloat(document.getElementById('t1-itemW').value),
+    h: parseFloat(document.getElementById('t1-itemH').value)
+  };
+  const itemWeight = parseFloat(document.getElementById('t1-itemWeight').value) || 0;
+  const box = { L: r.boxL, W: r.boxW, H: r.boxH };
+  const pack = {
+    count: r.nx * r.ny * r.nz,
+    nL: r.nx, nW: r.ny, nH: r.nz,
+    l: r.itemL, w: r.itemW, h: r.itemH,
+    label: 'REC'
+  };
+
+  // 3D 뷰 초기화 후 렌더링
+  currentRender = null;
+  render3DProductInBox(item, box, pack);
+
+  // 박스 내부 남은 공간 (패킹 여유 반영)
+  const usedL = pack.nL * pack.l;
+  const usedW = pack.nW * pack.w;
+  const usedH = pack.nH * pack.h;
+  const ctxText =
+    `박스 <strong>${box.L}×${box.W}×${box.H}</strong>mm · 내용물 배치 <strong>${usedL}×${usedW}×${usedH}</strong>mm`;
+  updateSpaceInfo('t1',
+    box.L - usedL,
+    box.W - usedW,
+    box.H - usedH,
+    ctxText
+  );
+
+  // 게이지 업데이트
+  const v_item = item.l * item.w * item.h;
+  const v_box = box.L * box.W * box.H;
+  const eff = (pack.count * v_item / v_box) * 100;
+  const boxWeight = pack.count * itemWeight / 1000;
+
+  setGaugeData({
+    maxLayers: pack.nH,
+    sliderLabel: '표시 단수',
+    label1: '단품 적재 단수',
+    label2: '체적 효율',
+    label3: '박스 내 단품 중량',
+    efficiency: eff,
+    totalWeight: boxWeight,
+    maxWeight: 0,
+    unit2: '%',
+    unit3: ' kg'
+  });
+}
+
+function calculateTab1() {
+  const item = {
+    l: parseFloat(document.getElementById('t1-itemL').value),
+    w: parseFloat(document.getElementById('t1-itemW').value),
+    h: parseFloat(document.getElementById('t1-itemH').value)
+  };
+  const box = {
+    L: parseFloat(document.getElementById('t1-boxL').value),
+    W: parseFloat(document.getElementById('t1-boxW').value),
+    H: parseFloat(document.getElementById('t1-boxH').value)
+  };
+  const itemWeight = parseFloat(document.getElementById('t1-itemWeight').value) || 0;
+  const errBox = document.getElementById('t1-error');
+  errBox.innerHTML = '';
+
+  if (!item.l || !item.w || !item.h || !box.L || !box.W || !box.H) {
+    errBox.innerHTML = '<div class="alert error">모든 값을 입력해주세요</div>';
+    return;
+  }
+
+  // 사용자 옵션 읽기
+  const requireEven = document.getElementById('t1-evenOnly').checked;
+  const productType = document.getElementById('t1-productTypeA').value;
+
+  const pack = calc3DPack(item, box, requireEven);
+  if (pack.count === 0) {
+    errBox.innerHTML = '<div class="alert error">단품이 아웃박스보다 큽니다. 크기를 확인해주세요.</div>';
+    return;
+  }
+
+  // 짝수 조정 안내 + 제품 특성별 단수 경고
+  const notes = [];
+  if (requireEven && pack.originalMax > pack.count) {
+    notes.push(`🔢 홀수 <strong>${pack.originalMax}개</strong> → 짝수 <strong style="color:#059669; font-size:14px;">${pack.count}개</strong>로 자동 조정 (-${pack.originalMax - pack.count}개)&nbsp; <span style="font-size:11px; opacity:0.8;">체크박스 해제 시 원래 ${pack.originalMax}개 표시됨</span>`);
+  } else if (requireEven && pack.count > 0 && pack.count === pack.originalMax && pack.count % 2 === 0) {
+    notes.push(`✅ 결과값 <strong>${pack.count}개</strong>는 이미 짝수입니다.`);
+  }
+  const layers = pack.nH;
+  if ((productType === 'heavy' || productType === 'fragile') && layers >= 4) {
+    notes.push(`⚠️ 현재 <strong>${layers}단</strong> 배치 — ${productType === 'heavy' ? '무거운' : '약한'} 제품은 하단 눌림/파손 위험이 있습니다. <strong>2~3단 이내 권장</strong>.`);
+  } else if ((productType === 'light' || productType === 'durable') && layers <= 2) {
+    notes.push(`💪 현재 <strong>${layers}단</strong> — ${productType === 'light' ? '가벼운' : '단단한'} 제품이라면 체적 효율을 위해 <strong>더 높은 단수도 고려 가능</strong>합니다.`);
+  } else if ((productType === 'heavy' || productType === 'fragile') && layers >= 2 && layers <= 3) {
+    notes.push(`✅ <strong>${layers}단</strong> 배치 — ${productType === 'heavy' ? '무거운' : '약한'} 제품에 적절한 단수입니다.`);
+  }
+  if (notes.length) {
+    errBox.innerHTML = `<div class="alert info" style="background:linear-gradient(135deg, #fef3c7, #fde68a); border-left:4px solid #f59e0b; color:#78350f; font-size:13px; line-height:1.8;">${notes.join('<br>')}</div>`;
+  }
+
+  const vItem = item.l * item.w * item.h;
+  const vBox = box.L * box.W * box.H;
+  const eff = (pack.count * vItem / vBox * 100);
+  const boxWeight = (pack.count * itemWeight / 1000);
+
+  document.getElementById('t1-summary').style.display = 'grid';
+  document.getElementById('t1-recommendations').style.display = 'none';
+  document.getElementById('t1-sum-count').textContent = pack.count;
+  document.getElementById('t1-sum-orient').textContent = `${pack.nL}×${pack.nW}×${pack.nH}`;
+  document.getElementById('t1-sum-eff').textContent = eff.toFixed(1) + '%';
+  document.getElementById('t1-sum-weight').textContent = boxWeight.toFixed(2) + ' kg';
+
+  render3DProductInBox(item, box, pack);
+
+  // 박스 내부 남은 공간 계산
+  const usedL = pack.nL * pack.l;
+  const usedW = pack.nW * pack.w;
+  const usedH = pack.nH * pack.h;
+  const ctxText = `박스 <strong>${box.L}×${box.W}×${box.H}</strong>mm · 내용물 배치 <strong>${usedL}×${usedW}×${usedH}</strong>mm`;
+  updateSpaceInfo('t1',
+    box.L - usedL,
+    box.W - usedW,
+    box.H - usedH,
+    ctxText
+  );
+
+  // 게이지 설정
+  setGaugeData({
+    maxLayers: pack.nH,
+    sliderLabel: '표시 단수',
+    label1: '단품 적재 단수',
+    label2: '체적 효율',
+    label3: '박스 내 단품 중량',
+    efficiency: eff,
+    totalWeight: boxWeight,
+    maxWeight: 0,
+    unit2: '%',
+    unit3: ' kg'
+  });
+}
+
+// TAB 2: 아웃박스 → 파렛트
+let t2Mode = 'auto';
+let t2Pattern = 'auto';
+
+function setT2Mode(mode) {
+  t2Mode = mode;
+  document.querySelectorAll('[data-t2-mode]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.t2Mode === mode);
+  });
+  document.getElementById('t2-mode-manual').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('t2-title').textContent = mode === 'manual'
+    ? '✏️ 수동 방단수 입력 검증'
+    : '아웃박스 → 파렛트 적재 계산';
+}
+
+function setT2Pattern(type) {
+  t2Pattern = type;
+  document.querySelectorAll('[data-pattern]').forEach(el =>
+    el.classList.toggle('active', el.dataset.pattern === type));
+  const info = PATTERN_INFO[type];
+  if (info) {
+    document.getElementById('t2-pattern-info').innerHTML =
+      `${info.icon} <strong style="color:#0369a1;">${info.name}</strong>: ${info.desc}`;
+  }
+}
+
+function toggleT2Overhang() {
+  const on = document.getElementById('t2-allowOverhang').checked;
+  document.getElementById('t2-overhang-amount').style.display = on ? 'block' : 'none';
+}
+
+// 특정 박스 개수(방수)를 만족하는 배치 찾기
+// 오버행 범위 내에서 목표 방수를 만들 수 있는 가장 작은 오버행으로 배치
+function findPatternForCount(boxL, boxW, palletL, palletW, targetRows, maxOverhang) {
+  // 기본 배치로 가능한지 확인
+  let pattern = bestPalletPattern(boxL, boxW, palletL, palletW);
+  if (pattern.count >= targetRows) {
+    // 처음 N개만 사용 (방수에 맞춰 잘라냄)
+    return {
+      pattern: { count: targetRows, boxes: pattern.boxes.slice(0, targetRows) },
+      overhang: 0,
+      virtualL: palletL,
+      virtualW: palletW,
+      maxPossible: pattern.count
+    };
+  }
+
+  // 오버행 단계적으로 증가시켜 가능한 최소 오버행 찾기
+  for (let oh = 5; oh <= maxOverhang; oh += 5) {
+    const vL = palletL + oh * 2;
+    const vW = palletW + oh * 2;
+    const p = bestPalletPattern(boxL, boxW, vL, vW);
+    if (p.count >= targetRows) {
+      return {
+        pattern: {
+          count: targetRows,
+          boxes: p.boxes.slice(0, targetRows).map(b => ({
+            ...b, x: b.x - oh, y: b.y - oh  // 파렛트 중심 기준으로 이동
+          }))
+        },
+        overhang: oh,
+        virtualL: vL,
+        virtualW: vW,
+        maxPossible: p.count
+      };
+    }
+  }
+  return null;
+}
+
+function calculateTab2() {
+  const palletL = parseFloat(document.getElementById('t2-palletL').value);
+  const palletW = parseFloat(document.getElementById('t2-palletW').value);
+  const boxL = parseFloat(document.getElementById('t2-boxL').value);
+  const boxW = parseFloat(document.getElementById('t2-boxW').value);
+  const boxH = parseFloat(document.getElementById('t2-boxH').value);
+  const boxWeight = parseFloat(document.getElementById('t2-boxWeight').value) || 0;
+  const maxHeight = parseFloat(document.getElementById('t2-maxHeight').value);
+  const palletH = parseFloat(document.getElementById('t2-palletH').value) || 0;
+  const maxWeight = parseFloat(document.getElementById('t2-maxWeight').value) || Infinity;
+  const allowOverhang = document.getElementById('t2-allowOverhang').checked;
+  const overhangMax = allowOverhang ? (parseFloat(document.getElementById('t2-overhangMax').value) || 0) : 0;
+  const centerAlign = document.getElementById('t2-centerAlign').checked;
+
+  const errBox = document.getElementById('t2-error');
+  const ohInfoBox = document.getElementById('t2-overhang-info');
+  errBox.innerHTML = '';
+  ohInfoBox.innerHTML = '';
+
+  if (!palletL || !palletW || !boxL || !boxW || !boxH) {
+    errBox.innerHTML = '<div class="alert error">모든 값을 입력해주세요</div>';
+    return;
+  }
+
+  let pattern, layers, actualOverhang = 0, maxPossibleRows = 0;
+
+  if (t2Mode === 'manual') {
+    // === 수동 모드: 방수/단수 직접 지정 ===
+    const targetRows = parseInt(document.getElementById('t2-manualRows').value);
+    const targetLayers = parseInt(document.getElementById('t2-manualLayers').value);
+
+    if (!targetRows || !targetLayers || targetRows < 1 || targetLayers < 1) {
+      errBox.innerHTML = '<div class="alert error">방수와 단수를 1 이상으로 입력해주세요</div>';
+      return;
+    }
+
+    const result = findPatternForCount(boxL, boxW, palletL, palletW, targetRows, overhangMax);
+    if (!result) {
+      const maxP = bestPalletPattern(boxL, boxW, palletL + overhangMax*2, palletW + overhangMax*2);
+      errBox.innerHTML = `<div class="alert error">
+        ❌ ${targetRows}방 배치 불가<br>
+        <span style="font-size:12px;">현재 조건에서 최대 ${maxP.count}방까지 가능합니다.
+        ${overhangMax > 0 ? `(오버행 ${overhangMax}mm 포함)` : '오버행을 허용해보세요.'}</span>
+      </div>`;
+      return;
+    }
+    pattern = result.pattern;
+    actualOverhang = result.overhang;
+    maxPossibleRows = result.maxPossible;
+    layers = targetLayers;
+
+    // 경고/정보 메시지
+    const totalH = palletH + layers * boxH;
+    const totalWt = targetRows * layers * boxWeight;
+    const warnings = [];
+    if (totalH > maxHeight) warnings.push(`⚠️ 총 높이 ${totalH}mm > 최대 ${maxHeight}mm 초과`);
+    if (totalWt > maxWeight) warnings.push(`⚠️ 총 중량 ${totalWt.toFixed(1)}kg > 최대 ${maxWeight}kg 초과`);
+    if (actualOverhang > 0) warnings.push(`📐 파렛트 초과 ${actualOverhang}mm (각 면)`);
+    if (warnings.length) {
+      ohInfoBox.innerHTML = `<div class="alert" style="background:#fef3c7; border-left:4px solid #f59e0b; color:#78350f;">
+        ${warnings.join('<br>')}
+      </div>`;
+    }
+  } else {
+    // === 자동 모드 ===
+    if (allowOverhang && overhangMax > 0) {
+      // 가상 파렛트 확장 후 선택된 패턴으로 배치
+      const vL = palletL + overhangMax * 2;
+      const vW = palletW + overhangMax * 2;
+      const p = getPatternByType(t2Pattern, boxL, boxW, vL, vW);
+      pattern = {
+        count: p.count,
+        boxes: p.boxes.map(b => ({ ...b, x: b.x - overhangMax, y: b.y - overhangMax })),
+        patternType: p.patternType
+      };
+      // 벽돌 패턴은 altBoxes도 오버행 좌표 조정
+      if (p.altBoxes) {
+        pattern.altBoxes = p.altBoxes.map(b => ({ ...b, x: b.x - overhangMax, y: b.y - overhangMax }));
+        pattern.altCount = p.altCount;
+        pattern.isAlternating = true;
+      }
+      actualOverhang = overhangMax;
+    } else {
+      pattern = getPatternByType(t2Pattern, boxL, boxW, palletL, palletW);
+    }
+
+    if (pattern.count === 0) {
+      errBox.innerHTML = '<div class="alert error">박스가 파렛트보다 큽니다. 오버행을 허용해보세요.</div>';
+      return;
+    }
+
+    const availH = maxHeight - palletH;
+    const maxLayersH = Math.floor(availH / boxH);
+    // 벽돌 패턴은 층별 count가 다를 수 있으므로 평균 기준으로 중량 계산
+    const avgPerLayer = pattern.isAlternating
+      ? (pattern.count + pattern.altCount) / 2
+      : pattern.count;
+    const weightPerLayer = avgPerLayer * boxWeight;
+    const maxLayersW = weightPerLayer > 0 && isFinite(maxWeight) ? Math.floor(maxWeight / weightPerLayer) : Infinity;
+    layers = Math.max(0, Math.min(maxLayersH, maxLayersW));
+
+    // 오버행 정보 표시
+    if (actualOverhang > 0) {
+      const baseP = getPatternByType(t2Pattern, boxL, boxW, palletL, palletW);
+      const gain = pattern.count - baseP.count;
+      ohInfoBox.innerHTML = `<div class="alert" style="background:#f0f9ff; border-left:4px solid #0ea5e9; color:#0c4a6e;">
+        📐 오버행 ${actualOverhang}mm 적용 — 기본 ${baseP.count}방 → <strong>${pattern.count}방</strong> (+${gain}개/단)
+      </div>`;
+    }
+  }
+
+  // 파렛트 중앙 정렬 적용 (체크박스 ON일 때)
+  if (centerAlign && pattern.boxes && pattern.boxes.length > 0) {
+    pattern = centerPatternOnPallet(pattern, palletL, palletW);
+  }
+
+  // 패턴 뱃지 표시 (수동 모드 제외)
+  const patternBadgeEl = document.getElementById('t2-pattern-badge');
+  if (t2Mode === 'auto' && PATTERN_INFO[t2Pattern]) {
+    const info = PATTERN_INFO[t2Pattern];
+    patternBadgeEl.innerHTML = `<span class="pattern-badge">${info.icon} ${info.name}</span>`;
+  } else {
+    patternBadgeEl.innerHTML = '';
+  }
+
+  // 총 박스 계산 (벽돌 패턴은 홀수/짝수 층 합산)
+  let total;
+  if (pattern.isAlternating && layers > 0) {
+    const oddLayers = Math.ceil(layers / 2);
+    const evenLayers = Math.floor(layers / 2);
+    total = oddLayers * pattern.count + evenLayers * pattern.altCount;
+  } else {
+    total = pattern.count * layers;
+  }
+  const cbm = total * boxL * boxW * boxH / 1e9;
+
+  document.getElementById('t2-summary').style.display = 'grid';
+  // 벽돌 패턴이면 층별로 다른 방수 표시
+  document.getElementById('t2-sum-perLayer').textContent = pattern.isAlternating
+    ? `${pattern.count}/${pattern.altCount}`
+    : pattern.count;
+  document.getElementById('t2-sum-layers').textContent = layers;
+  document.getElementById('t2-sum-total').textContent = total;
+  document.getElementById('t2-sum-cbm').textContent = cbm.toFixed(3);
+
+  currentRender = null;
+  render3DBoxesOnPallet(pattern, {
+    palletL, palletW, palletH, boxH, boxL, layers, overhang: actualOverhang
+  });
+
+  // 파렛트 남은 공간 — 박스 적재 영역의 bounding box 계산
+  // 벽돌 패턴은 두 레이어를 합친 전체 bounding box 기준
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  const allBoxes = pattern.isAlternating && pattern.altBoxes
+    ? [...pattern.boxes, ...pattern.altBoxes]
+    : pattern.boxes;
+  allBoxes.forEach(b => {
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.w);
+    maxY = Math.max(maxY, b.y + b.h);
+  });
+  if (allBoxes.length === 0) { minX = 0; maxX = 0; minY = 0; maxY = 0; }
+
+  // 파렛트 가로/세로 여유 (오버행이면 음수)
+  // 왼쪽 여유 + 오른쪽 여유 = 가로 총 여유
+  const leftGap = minX;               // 파렛트 좌측에서 가장 왼쪽 박스까지
+  const rightGap = palletL - maxX;    // 가장 오른쪽 박스에서 파렛트 우측까지
+  const frontGap = minY;
+  const backGap = palletW - maxY;
+
+  // 합계로 표시 (음수면 오버행)
+  const spareL = leftGap + rightGap;
+  const spareW = frontGap + backGap;
+  const spareH = maxHeight - (palletH + layers * boxH);
+
+  // 중앙 정렬 여부에 따른 맥락 정보
+  let spaceCtx = '';
+  if (centerAlign && allBoxes.length > 0) {
+    const perSideL = spareL / 2;
+    const perSideW = spareW / 2;
+    spaceCtx = `🎯 <strong>중앙 정렬됨</strong> — 좌우 각 <strong>${Math.round(perSideL)}mm</strong>, 앞뒤 각 <strong>${Math.round(perSideW)}mm</strong> 대칭 여유`;
+  } else if (allBoxes.length > 0) {
+    spaceCtx = `📍 모서리 정렬 — 좌 ${Math.round(leftGap)}mm, 우 ${Math.round(rightGap)}mm, 앞 ${Math.round(frontGap)}mm, 뒤 ${Math.round(backGap)}mm (비대칭)`;
+  }
+
+  updateSpaceInfo('t2', spareL, spareW, spareH, spaceCtx);
+
+  // 게이지 설정 (오버행 시 가상 파렛트 기준 효율)
+  const effPalletL = palletL + actualOverhang * 2;
+  const effPalletW = palletW + actualOverhang * 2;
+  // 벽돌은 두 층 평균 기준으로 면적 효율 계산
+  const areaEff = (avgBoxesForEff(pattern) * boxL * boxW) / (effPalletL * effPalletW) * 100;
+  const totalBoxWeight = total * boxWeight;
+  setGaugeData({
+    maxLayers: layers,
+    sliderLabel: '표시 단수',
+    label1: '박스 적재 단수',
+    label2: actualOverhang > 0 ? `면적 효율 (오버행+${actualOverhang}mm)` : '파렛트 면적 효율',
+    label3: '파렛트 총 중량',
+    efficiency: areaEff,
+    totalWeight: totalBoxWeight,
+    maxWeight: isFinite(maxWeight) ? maxWeight : 0,
+    unit2: '%',
+    unit3: ' kg'
+  });
+}
+
+// 벽돌 패턴의 효율 계산용 평균 박스 개수
+function avgBoxesForEff(pattern) {
+  if (pattern.isAlternating) {
+    return (pattern.count + pattern.altCount) / 2;
+  }
+  return pattern.count;
+}
+
+// TAB 3: 파렛트 → 컨테이너
+function calculateTab3() {
+  const contL = parseFloat(document.getElementById('t3-contL').value);
+  const contW = parseFloat(document.getElementById('t3-contW').value);
+  const contH = parseFloat(document.getElementById('t3-contH').value);
+  const contMax = parseFloat(document.getElementById('t3-contMaxWeight').value);
+  const palletL = parseFloat(document.getElementById('t3-palletL').value);
+  const palletW = parseFloat(document.getElementById('t3-palletW').value);
+  const loadHeight = parseFloat(document.getElementById('t3-loadHeight').value);
+  const palletWeight = parseFloat(document.getElementById('t3-palletWeight').value) || 0;
+  const doubleStack = document.getElementById('t3-doubleStack').checked;
+
+  const errBox = document.getElementById('t3-error');
+  errBox.innerHTML = '';
+
+  if (!contL || !contW || !contH || !palletL || !palletW) {
+    errBox.innerHTML = '<div class="alert error">모든 값을 입력해주세요</div>';
+    return;
+  }
+
+  // 바닥 최적 배치
+  const pattern = bestPalletPattern(palletL, palletW, contL, contW);
+  if (pattern.count === 0) {
+    errBox.innerHTML = '<div class="alert error">파렛트가 컨테이너보다 큽니다.</div>';
+    return;
+  }
+
+  // 단수
+  let stacks = 1;
+  if (doubleStack && loadHeight * 2 <= contH) stacks = 2;
+
+  const floorCount = pattern.count;
+  let totalPallets = floorCount * stacks;
+
+  // 중량 제한
+  if (palletWeight > 0 && contMax > 0) {
+    const maxByWeight = Math.floor(contMax / palletWeight);
+    if (totalPallets > maxByWeight) {
+      totalPallets = maxByWeight;
+      stacks = Math.ceil(totalPallets / floorCount);
+    }
+  }
+
+  const util = (pattern.count * palletL * palletW) / (contL * contW) * 100;
+
+  document.getElementById('t3-summary').style.display = 'grid';
+  document.getElementById('t3-sum-floor').textContent = floorCount;
+  document.getElementById('t3-sum-stacks').textContent = stacks;
+  document.getElementById('t3-sum-total').textContent = totalPallets;
+  document.getElementById('t3-sum-util').textContent = util.toFixed(1) + '%';
+
+  render3DPalletsInContainer(pattern, {
+    contL, contW, contH, palletL, palletW, loadHeight, stacks
+  });
+
+  // 게이지 설정 (파렛트 개수 기준)
+  setGaugeData({
+    maxLayers: totalPallets,
+    sliderLabel: '표시 파렛트',
+    label1: '컨테이너 내 파렛트',
+    label2: '공간 활용률',
+    label3: '총 중량',
+    efficiency: util,
+    totalWeight: totalPallets * palletWeight,
+    maxWeight: contMax > 0 ? contMax : 0,
+    unit2: '%',
+    unit3: ' kg'
+  });
+}
+
+// TAB 4: 통합 시뮬레이션
+function calculateTab4() {
+  const item = {
+    l: parseFloat(document.getElementById('t4-itemL').value),
+    w: parseFloat(document.getElementById('t4-itemW').value),
+    h: parseFloat(document.getElementById('t4-itemH').value)
+  };
+  const itemWeight = parseFloat(document.getElementById('t4-itemWeight').value) || 0;
+  const itemPrice = parseFloat(document.getElementById('t4-itemPrice').value) || 0;
+  const box = {
+    L: parseFloat(document.getElementById('t4-boxL').value),
+    W: parseFloat(document.getElementById('t4-boxW').value),
+    H: parseFloat(document.getElementById('t4-boxH').value)
+  };
+  const palletL = parseFloat(document.getElementById('t4-palletL').value);
+  const palletW = parseFloat(document.getElementById('t4-palletW').value);
+  const maxHeight = parseFloat(document.getElementById('t4-maxHeight').value);
+  const doubleStack = document.getElementById('t4-doubleStack').checked;
+  const cont = CONTAINERS[t4ContainerKey];
+
+  if (!item.l || !box.L || !palletL) {
+    alert('모든 필수 값을 입력해주세요');
+    return;
+  }
+
+  // Step 1: 단품 → 아웃박스
+  const pack = calc3DPack(item, box);
+  const itemsPerBox = pack.count;
+
+  // Step 2: 아웃박스 → 파렛트
+  const pattern = bestPalletPattern(box.L, box.W, palletL, palletW);
+  const palletH = 150;
+  const availH = maxHeight - palletH;
+  const layers = Math.floor(availH / box.H);
+  const boxesPerPallet = pattern.count * layers;
+  const itemsPerPallet = itemsPerBox * boxesPerPallet;
+
+  // 파렛트 중량
+  const boxWeight = itemsPerBox * itemWeight / 1000; // kg
+  const palletLoadWeight = boxesPerPallet * boxWeight; // kg
+  const palletTotalWeight = palletLoadWeight + 25; // 파렛트 자체 ~25kg
+
+  // Step 3: 파렛트 → 컨테이너
+  const contPattern = bestPalletPattern(palletL, palletW, cont.L, cont.W);
+  let stacks = 1;
+  if (doubleStack && maxHeight * 2 <= cont.H) stacks = 2;
+  let palletsPerCont = contPattern.count * stacks;
+
+  // 중량 제한 체크
+  if (palletTotalWeight * palletsPerCont > cont.maxWeight) {
+    palletsPerCont = Math.floor(cont.maxWeight / palletTotalWeight);
+  }
+
+  const totalItems = itemsPerPallet * palletsPerCont;
+  const totalBoxes = boxesPerPallet * palletsPerCont;
+  const totalWeightKg = totalItems * itemWeight / 1000;
+  const totalCBM = totalItems * (item.l * item.w * item.h) / 1e9;
+
+  // 결과 표시
+  document.getElementById('t4-results').style.display = 'block';
+  document.getElementById('flow-1-val').textContent = '1';
+  document.getElementById('flow-1-sub').textContent = `${item.l}×${item.w}×${item.h}mm`;
+  document.getElementById('flow-2-val').textContent = itemsPerBox.toLocaleString();
+  document.getElementById('flow-3-val').textContent = boxesPerPallet.toLocaleString();
+  document.getElementById('flow-4-val').textContent = palletsPerCont.toLocaleString();
+
+  document.querySelectorAll('.flow-step').forEach(s => s.classList.add('has-data'));
+
+  document.getElementById('t4-total').textContent = totalItems.toLocaleString() + ' 개';
+  document.getElementById('t4-breakdown').textContent =
+    `${palletsPerCont}파렛트 × ${boxesPerPallet}박스 × ${itemsPerBox}단품 = ${totalItems.toLocaleString()}개`;
+
+  const statsEl = document.getElementById('t4-stats');
+  statsEl.innerHTML = `
+    <div class="stat"><div class="stat-value">${cont.name}</div><div class="stat-label">컨테이너</div></div>
+    <div class="stat"><div class="stat-value">${totalBoxes.toLocaleString()}</div><div class="stat-label">총 아웃박스 수</div></div>
+    <div class="stat"><div class="stat-value">${totalWeightKg.toLocaleString('ko-KR', {maximumFractionDigits:0})} kg</div><div class="stat-label">총 중량</div></div>
+    <div class="stat"><div class="stat-value">${totalCBM.toFixed(2)} m³</div><div class="stat-label">총 체적 (CBM)</div></div>
+    <div class="stat"><div class="stat-value">${palletTotalWeight.toFixed(0)} kg</div><div class="stat-label">파렛트당 중량</div></div>
+    <div class="stat"><div class="stat-value">${stacks}단</div><div class="stat-label">파렛트 적재 단수</div></div>
+    ${itemPrice > 0 ? `<div class="stat"><div class="stat-value">${(totalItems * itemPrice).toLocaleString()}원</div><div class="stat-label">컨테이너당 화물가</div></div>` : ''}
+  `;
+
+  // 3D 뷰: 컨테이너 뷰로 표시
+  render3DPalletsInContainer(contPattern, {
+    contL: cont.L, contW: cont.W, contH: cont.H,
+    palletL, palletW, loadHeight: maxHeight, stacks
+  });
+
+  // 게이지 설정 (파렛트 개수 기준)
+  const contTotalPallets = contPattern.count * stacks;
+  const actualPallets = Math.min(contTotalPallets, palletsPerCont);
+  setGaugeData({
+    maxLayers: actualPallets,
+    sliderLabel: '표시 파렛트',
+    label1: '컨테이너 내 파렛트',
+    label2: '공간 활용률',
+    label3: '총 중량',
+    efficiency: (contPattern.count * palletL * palletW) / (cont.L * cont.W) * 100,
+    totalWeight: actualPallets * palletTotalWeight,
+    maxWeight: cont.maxWeight,
+    unit2: '%',
+    unit3: ' kg'
+  });
+}
+
+// 초기 렌더링
+window.addEventListener('DOMContentLoaded', () => {
+  initExcelDragDrop();
+  if (typeof THREE !== 'undefined') {
+    calculateTab1();
+  } else {
+    setTimeout(calculateTab1, 500);
+  }
+});
+</script>
+</body>
+</html>
